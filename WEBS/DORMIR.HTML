@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Texto por Palabras con Click Sostenido</title>
+  <style>
+    /* ------------------------------
+       Estilos generales
+    ------------------------------ */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #000000; /* fondo negro inicial */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
+      cursor: default; /* cursor por defecto sobre el body */
+    }
+
+    #word-container {
+      /* Controlamos la distancia de temblor con una variable CSS */
+      --shake-distance: 0px;
+      font-size: 3rem;             /* tamaño fijo para todas las palabras */
+      cursor: pointer;             /* mano para indicar que es clicable */
+      user-select: none;
+      position: relative;
+      transition: color 0.3s ease-out;
+      color: #ffffff;              /* texto blanco inicial */
+      text-align: center;
+      /* Efecto de brillo/glow cuando el fondo está en negro */
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    }
+
+    /* ------------------------------
+       Animación de temblor progresivo
+       Usamos --shake-distance para desplazar a izquierda/derecha
+    ------------------------------ */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25%      { transform: translateX(calc(var(--shake-distance) * -1)); }
+      75%      { transform: translateX(var(--shake-distance)); }
+    }
+
+    .shaking {
+      animation: shake 0.1s infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="word-container">Era</div>
+
+  <script>
+    // —————————————————————————————————
+    // Utilidad para crear el contexto de Audio
+    // —————————————————————————————————
+    function createAudioContext() {
+      return new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    // —————————————————————————————————
+    // Texto base ampliado
+    // —————————————————————————————————
+    const baseText = `
+      Otra vez me acuesto a la hora que me toca (23:30) sabiendo que será lo mismo que ayer. Tanto logro y no consigo algo tan sencillo como descansar. Mi cerebro, del que ya hablo como si no fuera parte de mí, parece no importarle ninguno de mis esfuerzos. Está esperando el momento de silencio para bombardearme con imágenes ideas miedos inseguridades quizáses y no encuentro un hueco por el que salirme. Antes tenía la luz, con ella me alejaba de enfrentarme a mí. Pero mi hermano no podía conciliar el sueño con ella encendida. Necesitaba oscuridad. Yo tuve que aprender a vivir con ella y ahora también la necesito. Otra idea. Otro pensamiento. Y si me levanto? Cuánto tiempo ha pasado ya? Qué hora es? Lucho por no mirar el móvil, lucho por no responder ese mensaje que sé que me acaba de llegar, lucho por no aferrarme a anotar esa idea que ahora parece mucho más importante que conseguir lo que llevo horas intentando Y si me rindo? Debería medicarme? 
+No pido tanto. Jaquecas, miedos, otra idea. Esta es demasiado buena debería anotarla. No soy suficiente. Qué estoy haciendo? Respira medita haz algo. Noto sangre de apretar los dientes, la férula en el cajón del baño. Soy inmune a los ansíoliticos. Tengo ganas de hacer pis. Si me levanto será volver al punto uno, pero no quiero volver a mearme. Tenía 16 y aún me pasaba. Que vergüenza. Otra idea. Otro trauma. Otra cosa que había conseguido olvidar que vuelve. Exhala. Inhala. Exhala. Inhala. No sirve me rindo. Necesito que pare yo creo que no pido tanto por favor solo quiero dormirme
+    `.trim();
+
+    const words = baseText.split(/\s+/);
+    const thresholdIndex = Math.floor(words.length * 0.25); // 25% del texto
+
+    let currentIndex   = 0;
+    let ctx            = null;
+    let osc            = null;
+    let gainNode       = null;
+    let holdInterval   = null;
+    let reachedEnd     = false;   // indica si ya llegamos a la última palabra
+    let currentFreq    = 200;     // frecuencia inicial (Hz)
+    const freqStep     = 20;      // Hz que sube cada intervalo
+    const intervalMs   = 100;     // velocidad original (100 ms por palabra)
+    const maxShake     = 8;       // temblor máximo en píxeles (más intenso que antes)
+
+    const wordContainer = document.getElementById("word-container");
+    wordContainer.textContent = words[currentIndex];
+
+    // —————————————————————————————————
+    // Detiene el audio y el intervalo, quita temblor y restaura cursor
+    // —————————————————————————————————
+    function stopAudioAndInterval() {
+      clearInterval(holdInterval);
+      holdInterval = null;
+      if (osc) {
+        osc.stop();
+        ctx.close();
+        osc = null;
+        ctx = null;
+        gainNode = null;
+      }
+      wordContainer.classList.remove("shaking");
+      // Restaurar cursor a “pointer” sobre word-container y “default” en body
+      wordContainer.style.cursor = 'pointer';
+      document.body.style.cursor = 'default';
+    }
+
+    // —————————————————————————————————
+    // Vuelve todo al estado inicial (primera palabra, fondo negro, cursor visible, etc.)
+    // —————————————————————————————————
+    function resetToInitial() {
+      stopAudioAndInterval();
+      document.body.style.backgroundColor = "#000000";
+      wordContainer.style.color = "#ffffff";
+      wordContainer.style.textShadow = "0 0 10px rgba(255, 255, 255, 0.8)";
+      currentIndex = 0;
+      currentFreq = 200;
+      reachedEnd = false;
+      // Reset del temblor
+      wordContainer.style.setProperty('--shake-distance', `0px`);
+      wordContainer.textContent = words[currentIndex];
+    }
+
+    // —————————————————————————————————
+    // Muestra “Buenos días” o “¿Buenos días?”, sin backticks ni HTML
+    // —————————————————————————————————
+    function showBuenosDias(question = false) {
+      stopAudioAndInterval();
+      document.body.style.backgroundColor = "#ffffff";
+      wordContainer.style.color = "#000000";
+      // Elimina el glow cuando el fondo es blanco
+      wordContainer.style.textShadow = "none";
+      wordContainer.textContent = question ? "¿Buenos días?" : "Buenos días";
+    }
+
+    // —————————————————————————————————
+    // Inicia todo al hacer mousedown
+    // —————————————————————————————————
+    wordContainer.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+
+      // Si ya está “Buenos días” (con o sin signo), reinicia en lugar de empezar de nuevo
+      const txt = wordContainer.textContent;
+      if (txt === "Buenos días" || txt === "¿Buenos días?") {
+        resetToInitial();
+        return;
+      }
+
+      // Oculta el cursor para facilitar la lectura de palabras grandes
+      wordContainer.style.cursor = 'none';
+      document.body.style.cursor = 'none';
+
+      // 1) Crear contexto de audio y arrancar el oscilador
+      ctx = createAudioContext();
+      osc = ctx.createOscillator();
+      gainNode = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(currentFreq, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start();
+
+      // 2) Aplicar la clase de “shaking” para activar la animación CSS
+      wordContainer.classList.add("shaking");
+
+      // 3) Iniciar intervalo: sube frecuencia + cambia palabra + aumenta temblor linealmente
+      holdInterval = setInterval(() => {
+        // a) Subir frecuencia
+        currentFreq += freqStep;
+        osc.frequency.setValueAtTime(currentFreq, ctx.currentTime);
+
+        // b) Avanzar a la siguiente palabra (si no es la última)
+        if (currentIndex < words.length - 1) {
+          currentIndex += 1;
+          wordContainer.textContent = words[currentIndex];
+
+          // c) Incrementar temblor de forma lineal: shakeDistance = maxShake * (currentIndex / (total-1))
+          const progress = currentIndex / (words.length - 1);
+          const shakeDistance = maxShake * progress;
+          wordContainer.style.setProperty('--shake-distance', `${shakeDistance}px`);
+        }
+
+        // d) Si acabamos de llegar a la última palabra:
+        if (currentIndex === words.length - 1 && !reachedEnd) {
+          reachedEnd = true;
+          // Detenemos audio e intervalo de inmediato
+          stopAudioAndInterval();
+          // Tras 200 ms, mostrar “Buenos días” (sin cambiar tamaño de la última palabra)
+          setTimeout(() => showBuenosDias(false), 200);
+        }
+      }, intervalMs);
+    });
+
+    // —————————————————————————————————
+    // Al soltar el clic (mouseup) o salir del área (mouseleave)
+    // —————————————————————————————————
+    function handleRelease() {
+      // Si ya hemos llegado al final y queda pendiente el setTimeout, no interferimos
+      if (reachedEnd) return;
+
+      // Si no hay intervalo activo (no estaba pulsando), no hacemos nada
+      if (!holdInterval) return;
+
+      // Detenemos audio e intervalo
+      stopAudioAndInterval();
+
+      // Si apenas avanzamos (menos del 25%), volvemos al principio
+      if (currentIndex < thresholdIndex) {
+        resetToInitial();
+      } else {
+        // Si superamos el 25% pero no llegamos al final, mostramos “¿Buenos días?”
+        showBuenosDias(true);
+      }
+    }
+
+    wordContainer.addEventListener("mouseup", handleRelease);
+    wordContainer.addEventListener("mouseleave", handleRelease);
+  </script>
+</body>
+</html>
