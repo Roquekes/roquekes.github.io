@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Yo</title>
+
+<!-- Google Fonts: bloque original -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=Roboto:wght@400&family=Open+Sans:wght@400&family=Lato:wght@400&family=Montserrat:wght@400&family=Merriweather:wght@400&family=Playfair+Display:wght@400&family=Source+Sans+3:wght@400&family=PT+Serif:wght@400&family=Work+Sans:wght@400&family=Raleway:wght@400&family=Nunito:wght@400&family=Fira+Sans:wght@400&family=Inconsolata:wght@400&family=IBM+Plex+Sans:wght@400&family=IBM+Plex+Serif:wght@400&family=Poppins:wght@400&family=Karla:wght@400&family=Libre+Baskerville:wght@400&family=Noto+Serif:wght@400&family=Noto+Sans:wght@400&family=Quicksand:wght@400&family=Rubik:wght@400&family=Cabin:wght@400&family=Oxygen:wght@400&family=Josefin+Sans:wght@400&family=DM+Sans:wght@400&family=DM+Serif+Display:wght@400&family=Archivo:wght@400&family=Asap:wght@400&display=swap"
+  rel="stylesheet">
+
+<!-- Google Fonts: bloque con las nuevas que pasaste (anteriores + nuevas) -->
+<link
+  href="https://fonts.googleapis.com/css2?family=Momo+Signature&family=Oswald&family=Nunito&family=Bebas+Neue&family=Anton&family=Cinzel&family=Are+You+Serious&family=Bodoni+Moda&family=Permanent+Marker&family=Smooch+Sans&family=Press+Start+2P&family=Sawarabi+Mincho&family=Gruppo&family=Sacramento&family=VT323&family=Unica+One&family=Audiowide&family=Tourney&family=Slackey&family=Nixie+One&family=Allerta+Stencil&family=Silkscreen&family=Arizonia&family=Sigmar+One&family=Irish+Grover&family=UnifrakturMaguntia&family=DynaPuff&family=Megrim&family=Supermercado+One&family=Kelly+Slab&family=Codystar&family=Finger+Paint&family=Trade+Winds&family=Stack+Sans+Notch&family=Kablammo&family=Caesar+Dressing&family=Creepster&family=Ribeye+Marrow&family=Jacquard+24&family=Rubik+Beastly&family=Foldit&family=Workbench&family=Montserrat+Alternates&family=Unbounded&family=Princess+Sofia&family=Italianno&display=swap"
+  rel="stylesheet">
+
+<style>
+  :root{ --font-size: 20px; }
+  #viewport{ position:fixed; inset:0; width:100vw; height:100vh; overflow:hidden; background:#fff; color:#000; font-family:Arial, sans-serif; }
+  #world{ position:absolute; left:0; top:0; will-change:transform; }
+
+  .name{
+    position:absolute; font-size:var(--font-size); user-select:none; white-space:nowrap; color:#000; font-weight:normal; line-height:1;
+    opacity:0; transform:translateY(4px);
+    transition: opacity 420ms ease, transform 420ms ease;
+    letter-spacing: 0;
+  }
+  .name.show{ opacity:1; transform:translateY(0); }
+  .name::after{
+    content: attr(data-text);
+    position:absolute; left:0; top:0;
+    white-space:inherit; color:#000; pointer-events:none; opacity:0;
+    text-shadow:
+      0 0 0.6px rgba(0,0,0,.7),
+      0 0 0.6px rgba(0,0,0,.7),
+      0 0 0.6px rgba(0,0,0,.7);
+    transition: opacity 220ms ease;
+  }
+  .name.near::after{ opacity:.9; }
+
+  #yo{
+    position:absolute; font-weight:bold; font-size:var(--font-size); display:flex; gap:0; letter-spacing:-0.5px;
+    transform:translate(-50%,-50%); color:#000; transition: opacity 140ms ease;
+  }
+  .letter{ display:inline-block; transition:transform .25s, opacity .25s; }
+
+  #diag{
+    position:fixed; left:16px; bottom:16px; width:460px; max-height:72vh; overflow:auto;
+    background:#fff; color:#000; border:1px solid #000; padding:12px; font-family:Arial, sans-serif;
+    box-shadow: 0 4px 24px rgba(0,0,0,.15);
+    display:none;
+  }
+  #diag h3{ margin:0 0 8px 0; font-size:14px; }
+  #diag .small{ font-size:11px; opacity:.8; }
+  #diag ul{ margin:8px 0 0 16px; padding:0; }
+  #diag li{ margin:2px 0; }
+  #diag .row{ display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap; }
+  #diag button{ padding:6px 8px; border:1px solid #000; background:#000; color:#fff; cursor:pointer; font-size:12px; }
+  #diag h4{ margin:10px 0 4px 0; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  #diag .ok{ color:#0b7a2b; font-weight:bold; }
+  #diag .warn{ color:#a05a00; font-weight:bold; }
+  #diag .fail{ color:#b00020; font-weight:bold; }
+  #diag .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:11px; }
+
+  /* Ejemplo para fuente local tipo Papyrus (opcional) */
+  @font-face {
+    font-family: 'MiPapyrus';
+    src: url('./Papyrus.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+  }
+</style>
+</head>
+<body>
+  <div id="viewport">
+    <div id="world">
+      <div id="yo"></div>
+    </div>
+  </div>
+
+  <div id="diag">
+    <h3>Diagnóstico (Ctrl+I)</h3>
+    <div class="small">
+      Cada persona tiene una fuente asignada por nombre en el objeto NAME_TO_FONT_KEY.<br>
+      Puedes cambiarla allí fácilmente.
+    </div>
+    <h4>Resumen</h4>
+    <ul id="diag-summary"></ul>
+    <h4>Fuentes usadas (alfabético)</h4>
+    <ul id="diag-used"></ul>
+    <h4>Disponibilidad (primera familia de cada stack)</h4>
+    <ul id="diag-availability"></ul>
+    <div class="row">
+      <button id="diag-color">Colorear por fuente</button>
+      <button id="diag-close">Cerrar</button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  /* ===================== MAPA DE TIPOGRAFÍAS ===================== */
+  const FONT_STACKS = {
+    // Llamativas de sistema / clásicas
+    comic:   "'Comic Sans MS', 'Comic Sans', cursive, sans-serif",
+    impact:  "Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif",
+
+    // Papyrus: si no está instalada, cae a Playfair (Google), luego serif
+    papyrus: "Papyrus, 'Papyrus Regular', 'Playfair Display', Georgia, serif",
+
+    // Clásicas con Google como siguiente opción
+    roboto:    "'Roboto', Arial, sans-serif",
+    helvetica: "'Helvetica Neue', Helvetica, Inter, Arial, sans-serif",
+    times:     "'Times New Roman', 'DM Serif Display', Times, serif",
+    futura:    "Futura, Montserrat, 'Trebuchet MS', Arial, sans-serif",
+    bodoni:    "'Bodoni MT', 'DM Serif Display', 'Times New Roman', serif",
+    garamond:  "'Garamond', 'Libre Baskerville', Baskerville, serif",
+    franklin:  "'Franklin Gothic Medium', 'Work Sans', 'Arial Narrow', Arial, sans-serif",
+    arial:     "Arial, system-ui, sans-serif",
+    baskerville:"Baskerville, 'Libre Baskerville', 'Garamond', serif",
+    clarendon: "Clarendon, 'Rockwell', 'Bookman Old Style', serif",
+    didot:     "Didot, 'DM Serif Display', 'Bodoni MT', serif",
+    univers:   "Univers, 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif",
+    rockwell:  "Rockwell, 'Roboto Slab', 'Times New Roman', serif",
+    cooper:    "'Cooper Black', 'Archivo Black', Impact, sans-serif",
+    akzidenz:  "'Akzidenz Grotesk', 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif",
+    avant:     "'ITC Avant Garde Gothic', 'Poppins', 'Century Gothic', sans-serif",
+    century:   "'Century Gothic', 'Quicksand', 'Futura', sans-serif",
+    gill:      "'Gill Sans', 'Karla', Calibri, 'Trebuchet MS', sans-serif",
+    myriad:    "Myriad Pro, 'Nunito', 'Segoe UI', Helvetica, Arial, sans-serif",
+    trajan:    "Trajan Pro, 'DM Serif Display', 'Times New Roman', serif",
+    georgia:   "Georgia, 'Noto Serif', 'Times New Roman', serif",
+
+    // Google que ya tenías
+    inter:        "Inter, Arial, sans-serif",
+    openSans:     "'Open Sans', Arial, sans-serif",
+    lato:         "Lato, Arial, sans-serif",
+    montserrat:   "Montserrat, Arial, sans-serif",
+    merriweather: "Merriweather, Georgia, serif",
+    playfair:     "'Playfair Display', Georgia, serif",
+
+    // ==== Google Fonts “nuevas” (bloque anterior) ====
+    momoSignature:   "'Momo Signature', cursive",
+    oswaldGF:        "'Oswald', sans-serif",
+    nunitoGF:        "'Nunito', sans-serif",
+    bebasNeue:       "'Bebas Neue', sans-serif",
+    antonGF:         "'Anton', sans-serif",
+    cinzelGF:        "'Cinzel', serif",
+    areYouSerious:   "'Are You Serious', cursive",
+    bodoniModaGF:    "'Bodoni Moda', serif",
+    permanentMarkerGF:"'Permanent Marker', cursive",
+    smoochSansGF:    "'Smooch Sans', sans-serif",
+    pressStart2P:    "'Press Start 2P', monospace",
+    sawarabiMinchoGF:"'Sawarabi Mincho', serif",
+    gruppoGF:        "'Gruppo', cursive",
+    sacramentoGF:    "'Sacramento', cursive",
+    vt323GF:         "'VT323', monospace",
+    unicaOneGF:      "'Unica One', sans-serif",
+    audiowideGF:     "'Audiowide', cursive",
+    tourneyGF:       "'Tourney', cursive",
+    slackeyGF:       "'Slackey', cursive",
+    nixieOneGF:      "'Nixie One', cursive",
+    allertaStencilGF:"'Allerta Stencil', sans-serif",
+    silkscreenGF:    "'Silkscreen', monospace",
+    arizoniaGF:      "'Arizonia', cursive",
+    sigmarOneGF:     "'Sigmar One', cursive",
+    irishGroverGF:   "'Irish Grover', cursive",
+    unifrakturGF:    "'UnifrakturMaguntia', cursive",
+    dynaPuffGF:      "'DynaPuff', cursive",
+    megrimGF:        "'Megrim', cursive",
+    supermercadoOneGF:"'Supermercado One', cursive",
+    kellySlabGF:     "'Kelly Slab', serif",
+    codystarGF:      "'Codystar', cursive",
+    fingerPaintGF:   "'Finger Paint', cursive",
+    tradeWindsGF:    "'Trade Winds', cursive",
+    stackSansNotchGF:"'Stack Sans Notch', sans-serif",
+
+    // ==== Nuevas Google Fonts que acabas de añadir ====
+    kablammoGF:        "'Kablammo', cursive",
+    caesarDressingGF:  "'Caesar Dressing', cursive",
+    creepsterGF:       "'Creepster', cursive",
+    ribeyeMarrowGF:    "'Ribeye Marrow', cursive",
+    jacquard24GF:      "'Jacquard 24', cursive",
+    rubikBeastlyGF:    "'Rubik Beastly', cursive",
+    folditGF:          "'Foldit', cursive",
+    workbenchGF:       "'Workbench', sans-serif",
+    montserratAltGF:   "'Montserrat Alternates', sans-serif",
+    unboundedGF:       "'Unbounded', sans-serif",
+    princessSofiaGF:   "'Princess Sofia', cursive",
+    italiannoGF:       "'Italianno', cursive",
+
+    // Ejemplo de fuente local usando @font-face
+    papyrusLocal:      "'MiPapyrus', 'Bodoni Moda', serif"
+  };
+
+  /* Asignación actual (respetando lo que has pedido + nuevas personas) */
+  const NAME_TO_FONT_KEY = {
+    "Mamá":     "comic",
+    "Papa":     "impact",
+    "Sabela":   "jacquard24GF",  // gótica
+    "Antón":    "antonGF",
+    "Marcos":   "unifrakturGF",
+    "Félix":    "silkscreenGF",
+    "Carmen":   "kablammoGF",
+    "Moncha":   "princessSofiaGF",
+    "Lúa":      "dynaPuffGF",
+    "Corleone": "italiannoGF",
+    "Julia":    "momoSignature",
+    "Abuela":   "creepsterGF",   // nueva
+    "Izán":     "ribeyeMarrowGF",
+
+    "Miguel":   "allertaStencilGF",
+    "Xoana":    "century",
+    "Guille":   "irishGroverGF",
+    "Santi":    "cinzelGF",
+    "Noé":      "workbenchGF",
+    "April":    "slackeyGF",
+    "Hakima":   "tradeWindsGF",
+    "Alma":     "times",
+    "Carlos":   "audiowideGF",
+
+    "Pilar":    "rubikBeastlyGF",
+    "Fran":     "trajan",
+    "Eloy":     "tourneyGF",
+    "Martina":  "supermercadoOneGF",
+
+    "Xoan":     "megrimGF",
+    "Gael":     "lato",
+
+    "Eufrasio": "fingerPaintGF",
+    "Astor":    "merriweather",
+    "Jimena":   "playfair",
+
+    // Nuevos amigotes
+    "Tomás":    "codystarGF",
+    "Sara":     "montserratAltGF",
+    "Diego":    "caesarDressingGF",
+    "Gustavo":  "stackSansNotchGF",
+    "Ángela":   "princessSofiaGF"
+  };
+
+  function fontStackForName(name){
+    const key = NAME_TO_FONT_KEY[name];
+    if(key && FONT_STACKS[key]) return FONT_STACKS[key];
+    return "Arial, sans-serif";
+  }
+
+  /* ===================== DATOS DEL USUARIO ===================== */
+  const USER_DATA = {
+    groups: [
+      {
+        groupName: "Familia",
+        members: [
+          { name: "Mamá",    closeness: 1, labels: ["hijo","Ro","Roquiño","Marcos","Antón"] },
+          { name: "Papa",    closeness: 1, labels: ["hijo","Ro","Roquiño","Marcos","Antón"] },
+          { name: "Sabela",  closeness: 1, labels: ["Flor","cariño","Roke","Roque","amor"] },
+          { name: "Antón",   closeness: 1, labels: ["Ro","Roque","Marcos"] },
+          { name: "Marcos",  closeness: 1, labels: ["Ro","Roque","Antón"] },
+          { name: "Félix",   closeness: 1, labels: ["Roque","Roquekes"] },
+          { name: "Carmen",  closeness: 1, labels: ["Roque","Bro"] },
+          { name: "Moncha",  closeness: 1, labels: ["...","hnmhmmmm","....."] },
+          { name: "Lúa",     closeness: 1, labels: ["Guau","GuauGuau","GuauGuauGuau"] },
+          { name: "Corleone",closeness: 1, labels: ["Guaui","GuauGuaui","GuauGuauGuauino"] },
+          { name: "Julia",   closeness: 1, labels: ["Ro","Roque","primo","primito"] },
+          { name: "Abuela",  closeness: 1, labels: ["Roque"] },
+          { name: "Izán",    closeness: 2, labels: ["Ro","Roque","Roquito","Roquetito"] }
+        ]
+      },
+      {
+        groupName: "Amiguis",
+        members: [
+          { name: "Miguel",  closeness: 2, labels: ["amigo","Roque","Socio","Joven"] },
+          { name: "Xoana",   closeness: 3, labels: ["Roque"] },
+          { name: "Guille",  closeness: 2, labels: ["meu","Roque","bro","Roquekes","Ekor"] },
+          { name: "Santi",   closeness: 2, labels: ["meu","Roque","bro","Roquekes","Ekor"] },
+          { name: "Noé",     closeness: 2, labels: ["Roque","Roquekes"] },
+          { name: "April",   closeness: 2, labels: ["Roque","Roquekes"] },
+          { name: "Hakima",  closeness: 2, labels: ["Roque"] },
+          { name: "Alma",    closeness: 2, labels: ["Roque"] },
+          { name: "Carlos",  closeness: 2, labels: ["Roque","Bro"] }
+        ]
+      },
+      {
+        groupName: "Familia",
+        members: [
+          { name: "Pilar",   closeness: 3, labels: ["Roque","ahijado"] },
+          { name: "Fran",    closeness: 3, labels: ["Roque","capullo"] },
+          { name: "Eloy",    closeness: 3, labels: ["Roque","primo","tonto"] },
+          { name: "Martina", closeness: 3, labels: ["Roque","primo","tonto"] }
+        ]
+      },
+      {
+        groupName: "Amiguis de Amiguis",
+        members: [
+          { name: "Xoan",    closeness: 4, labels: ["Roque"] },
+          { name: "Gael",    closeness: 4, labels: ["Roque"] }
+        ]
+      },
+      {
+        groupName: "Amigotes",
+        members: [
+          { name: "Eufrasio",closeness: 4, labels: ["Roque"] },
+          { name: "Astor",   closeness: 4, labels: ["Roque"] },
+          { name: "Jimena",  closeness: 4, labels: ["Roque"] },
+          { name: "Tomás",   closeness: 4, labels: ["Roque"] },
+          { name: "Sara",    closeness: 4, labels: ["Roque"] },
+          { name: "Diego",   closeness: 4, labels: ["Roque"] },
+          { name: "Gustavo", closeness: 4, labels: ["Roque"] },
+          { name: "Ángel",  closeness: 4, labels: ["Roque"] }
+        ]
+      }
+    ]
+  };
+
+  /* ===================== CONFIGURACIÓN ===================== */
+  const CONFIG = {
+    baseName: "Yo",
+    proximity: 110,
+    minDistance: 120,
+    virtualWidth: 4000,
+    virtualHeight: 2800,
+    startSafeMargin: 280,
+    rings: { innerPad: 80, minRingWidth: 70 },
+
+    physics: {
+      enableInertia: true, accel: 850, maxSpeed: 300, friction: 0.28,
+      cameraLerp: 0.14, cameraFollowWhileIdle: false, stopEpsilon: 6,
+      autoBrake: { enabled: true, delayMs: 1000, extraFriction: 1.1 }
+    },
+    clickMove: { enabled: true, mode: "steer", stopRadius: 14, cancelOnKey: true }
+  };
+
+  /* ===================== Utilidades básicas ===================== */
+  const viewport = document.getElementById("viewport");
+  const world = document.getElementById("world");
+  const yo = document.getElementById("yo");
+  world.style.width  = CONFIG.virtualWidth  + "px";
+  world.style.height = CONFIG.virtualHeight + "px";
+
+  const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZáéíóúñ0123456789";
+  function randomChar(){ return letters[Math.floor(Math.random()*letters.length)]; }
+  function setYoText(text){
+    yo.innerHTML = "";
+    for(const ch of text){
+      const s = document.createElement("span");
+      s.className = "letter";
+      s.textContent = ch;
+      yo.appendChild(s);
+    }
+  }
+  setYoText(CONFIG.baseName);
+  yo.style.fontFamily = "Arial, sans-serif";
+
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+  const CX = CONFIG.virtualWidth/2, CY = CONFIG.virtualHeight/2;
+  function toCartesian(r,a){ return { x: CX + Math.cos(a)*r, y: CY + Math.sin(a)*r }; }
+
+  function getFirstFamilyName(stack){
+    if(!stack) return "";
+    const first = stack.split(",")[0].trim();
+    return first.replace(/^["']+|["']+$/g, "");
+  }
+
+  function isFontAvailable(fontName){
+    if(!fontName) return false;
+    const testString = "AaBbCcDdEeFfGg1234567890 ÁáÉéÍíÓóÚú Ññ";
+    const baseFamilies = ["monospace","serif","sans-serif"];
+
+    const span = document.createElement("span");
+    span.textContent = testString;
+    span.style.position = "absolute";
+    span.style.left = "-9999px";
+    span.style.top = "-9999px";
+    span.style.fontSize = "32px";
+    span.style.fontWeight = "400";
+    span.style.whiteSpace = "nowrap";
+    document.body.appendChild(span);
+
+    const baseWidths = {};
+    for(const base of baseFamilies){
+      span.style.fontFamily = base;
+      baseWidths[base] = span.offsetWidth;
+    }
+
+    let available = false;
+    for(const base of baseFamilies){
+      span.style.fontFamily = "'" + fontName + "'," + base;
+      const w = span.offsetWidth;
+      if(w !== baseWidths[base]){
+        available = true;
+        break;
+      }
+    }
+
+    document.body.removeChild(span);
+    return available;
+  }
+
+  function computeRings(levelsSet){
+    const inner0 = (CONFIG.startSafeMargin || 240) + (CONFIG.rings?.innerPad || 80);
+    const maxR = Math.min(CONFIG.virtualWidth, CONFIG.virtualHeight) * 0.48;
+    const minW = CONFIG.rings?.minRingWidth || 60;
+    const levels = Array.from(levelsSet).sort((a,b)=>a-b);
+    const K = Math.max(1, levels.length);
+    const span = Math.max(minW*K, (maxR - inner0));
+    const step = span / K;
+    const map = new Map();
+    for(let i=0;i<K;i++) map.set(levels[i], {min: inner0 + i*step, max: inner0 + (i+1)*step});
+    return map;
+  }
+
+  function shuffle(arr){
+    const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a;
+  }
+
+  const allMembers = [];
+  USER_DATA.groups.forEach(g => g.members.forEach(m => allMembers.push(m)));
+  const presentLevels = new Set(allMembers.map(m => clamp(Math.round(m.closeness||1),1,8)));
+  const ringMap = computeRings(presentLevels);
+
+  function scheduleFadeIn(el){
+    try{
+      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const delay = reduce ? 0 : Math.floor(Math.random()*1200);
+      el.style.transition = `opacity 420ms ease ${delay}ms, transform 420ms ease ${delay}ms`;
+      requestAnimationFrame(()=>{ el.classList.add('show'); });
+    }catch(e){ el.classList.add('show'); }
+  }
+
+  const people = [];
+  function createPersonElement(displayName, stack){
+    const el = document.createElement("div");
+    el.className = "name";
+    el.textContent = displayName;
+    el.setAttribute("data-text", displayName);
+    el.setAttribute("data-font", stack);
+    el.style.fontFamily = stack;
+    world.appendChild(el);
+    scheduleFadeIn(el);
+    const rect = el.getBoundingClientRect();
+    const w = rect.width || 60, h = rect.height || 22;
+    return { el, w, h };
+  }
+
+  function placeDispersed(){
+    const byLevel = new Map();
+    for(const m of allMembers){
+      const lvl = clamp(Math.round(m.closeness||1),1,8);
+      if(!byLevel.has(lvl)) byLevel.set(lvl, []);
+      byLevel.get(lvl).push(m);
+    }
+    const PHI = Math.PI * (3 - Math.sqrt(5));
+    const maxAttempts = 15000;
+
+    const pending = [];
+    for(const [lvl, arr] of byLevel){
+      for(const m of arr){
+        const stack = fontStackForName(m.name);
+        const node = createPersonElement(m.name, stack);
+        pending.push({ lvl, m, node });
+      }
+    }
+
+    const placed = [];
+    const minD = CONFIG.minDistance;
+
+    for(const [lvl, arr] of byLevel){
+      const ring = ringMap.get(lvl) || [...ringMap.values()][0];
+      const items = pending.filter(p => p.lvl===lvl);
+      let angle = Math.random() * 2*Math.PI;
+      const step = PHI;
+
+      for(const it of items){
+        let ok=false, tries=0, x=0, y=0;
+        while(!ok && tries<maxAttempts){
+          tries++;
+          angle += step;
+          const radius = ring.min + (ring.max-ring.min) * (0.25 + 0.5*Math.random());
+          const pos = toCartesian(radius, angle);
+          x = clamp(pos.x, 10, CONFIG.virtualWidth-10);
+          y = clamp(pos.y, 10, CONFIG.virtualHeight-10);
+          ok = placed.every(pp => {
+            const dx = (pp.x + pp.hw) - x;
+            const dy = (pp.y + pp.hh) - y;
+            const d = Math.hypot(dx, dy);
+            const pad = Math.max(minD, (pp.hw+pp.hh)/2);
+            return d > pad;
+          }) && (Math.hypot(x - CX, y - CY) > CONFIG.startSafeMargin);
+        }
+        const { el, w, h } = it.node;
+        el.style.left = (x - w/2) + "px";
+        el.style.top  = (y - h/2) + "px";
+
+        const labels = (it.m.labels && it.m.labels.length) ? it.m.labels.slice() : [it.m.name];
+        const queue = shuffle(labels);
+        const person = {
+          x:x - w/2, y:y - h/2, el, hw:w/2, hh:h/2,
+          labels, queue, lastLabel:null, closeness: it.m.closeness,
+          baseName: it.m.name, displayName: it.m.name, active:false
+        };
+        placed.push(person);
+      }
+    }
+
+    const ITER = 6;
+    for(let k=0;k<ITER;k++){
+      for(let i=0;i<placed.length;i++){
+        for(let j=i+1;j<placed.length;j++){
+          const a = placed[i], b = placed[j];
+          const ax = a.x + a.hw, ay = a.y + a.hh;
+          const bx = b.x + b.hw, by = b.y + b.hh;
+          const dx = bx - ax, dy = by - ay;
+          const dist = Math.hypot(dx, dy) || 1e-6;
+          const desired = CONFIG.minDistance;
+          if(dist < desired){
+            const push = (desired - dist) * 0.5;
+            const ux = dx / dist, uy = dy / dist;
+            a.x -= ux * push; a.y -= uy * push;
+            b.x += ux * push; b.y += uy * push;
+          }
+        }
+      }
+    }
+
+    for(const p of placed){
+      p.el.style.left = p.x + "px";
+      p.el.style.top  = p.y + "px";
+      people.push(p);
+    }
+  }
+
+  placeDispersed();
+
+  /* ===================== Yo + Cámara + Física ===================== */
+  let rx = CX, ry = CY;
+  yo.style.left = rx + "px"; yo.style.top = ry + "px";
+
+  let camX = 0, camY = 0;
+  let rxv = 0, ryv = 0;
+  let lastInputTimestamp = performance.now();
+  let goal = {active:false, x:0, y:0};
+
+  function updateCamera(centerOnYo, instant=false){
+    const vw = viewport.clientWidth, vh = viewport.clientHeight;
+    if(centerOnYo){
+      const targetX = clamp(rx - vw/2, 0, Math.max(0, CONFIG.virtualWidth  - vw));
+      const targetY = clamp(ry - vh/2, 0, Math.max(0, CONFIG.virtualHeight - vh));
+      if(instant){ camX = targetX; camY = targetY; }
+      else {
+        const k = CONFIG.physics.cameraLerp;
+        camX += (targetX - camX) * k;
+        camY += (targetY - camY) * k;
+      }
+    }
+    world.style.transform = `translate(${-camX}px, ${-camY}px)`;
+  }
+  requestAnimationFrame(()=> updateCamera(true, true));
+
+  const keys = {};
+  window.addEventListener("keydown", e => {
+    const k = e.key.toLowerCase(); keys[k] = true;
+    if (k === 'i' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); toggleDiag(); }
+    if (k === ' ' || k === 'spacebar') { e.preventDefault(); goal.x = CX; goal.y = CY; goal.active = true; }
+  });
+  window.addEventListener("keyup",   e => { keys[e.key.toLowerCase()] = false; });
+
+  function screenToWorld(clientX, clientY){ return { x: camX + clientX, y: camY + clientY }; }
+  function setGoalAt(clientX, clientY){
+    if(!CONFIG.clickMove || !CONFIG.clickMove.enabled) return;
+    const {x,y} = screenToWorld(clientX, clientY);
+    goal.x = clamp(x, 0, CONFIG.virtualWidth); goal.y = clamp(y, 0, CONFIG.virtualHeight); goal.active = true;
+  }
+  viewport.addEventListener("pointerdown", (e)=>{ setGoalAt(e.clientX, e.clientY); });
+
+  let morphing=false, currentText=CONFIG.baseName;
+  function morphTo(target){
+    if(morphing || target === currentText) return;
+    morphing = true; currentText = target;
+    const spans = Array.from(yo.children);
+    const maxLen = Math.max(spans.length, target.length);
+    for(let i=spans.length;i<maxLen;i++){
+      const s=document.createElement("span");
+      s.className="letter";
+      s.textContent="";
+      yo.appendChild(s);
+    }
+    const allSpans = Array.from(yo.children);
+    const tchars = target.split("");
+    const start = performance.now(); const dur = 820;
+    function frame(now){
+      const p = Math.min(1, (now-start)/dur);
+      for(let i=0;i<allSpans.length;i++){
+        const s = allSpans[i];
+        if(p<1){
+          s.textContent = Math.random()<0.2 ? (tchars[i]||"") : randomChar();
+          s.style.opacity = 0.75;
+          s.style.transform = `translateY(${Math.sin(now/50+i)*4}px)`;
+        } else {
+          s.textContent = tchars[i]||"";
+          s.style.opacity = 1;
+          s.style.transform = "translateY(0)";
+        }
+      }
+      if(p<1) requestAnimationFrame(frame);
+      else {
+        yo.innerHTML="";
+        for(const ch of tchars){
+          const s=document.createElement("span");
+          s.className="letter";
+          s.textContent=ch;
+          yo.appendChild(s);
+        }
+        morphing=false;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function nextLabelCycle(person){
+    if(!person.labels || person.labels.length===0) return CONFIG.baseName;
+    if(!person.queue || person.queue.length===0){
+      person.queue = shuffle(person.labels);
+      if(person.lastLabel && person.queue.length > 1 && person.queue[0] === person.lastLabel){
+        const idx = Math.floor(Math.random()*(person.queue.length-1))+1;
+        [person.queue[0], person.queue[idx]] = [person.queue[idx], person.queue[0]];
+      }
+    }
+    const nxt = person.queue.shift();
+    person.lastLabel = nxt;
+    return nxt;
+  }
+
+  let lastNear = null;
+  function checkProximity(){
+    let nearest=null, dmin=Infinity;
+    for(const p of people){
+      const px=p.x+p.hw, py=p.y+p.hh;
+      const d=Math.hypot(px-rx,py-ry);
+      if(d<dmin){ dmin=d; nearest=p; }
+    }
+    if(nearest && dmin < CONFIG.proximity){
+      people.forEach(o => {
+        o.active = (o === nearest);
+        o.el.classList.toggle('near', o === nearest);
+      });
+      const nf = nearest.el.getAttribute('data-font') || "Arial, sans-serif";
+      yo.style.fontFamily = nf;
+      if(lastNear !== nearest && !morphing){
+        morphTo(nextLabelCycle(nearest));
+        lastNear = nearest;
+      }
+    } else {
+      people.forEach(o => { o.active = false; o.el.classList.remove('near'); });
+      if(lastNear !== null && !morphing){ morphTo(CONFIG.baseName); }
+      yo.style.fontFamily = "Arial, sans-serif";
+      lastNear = null;
+    }
+  }
+
+  const PHYS = CONFIG.physics;
+  function loop(now){
+    const dtSec = (loop.prev ? (now-loop.prev) : 16.7)/1000; loop.prev = now;
+    let ix=0, iy=0;
+    if(keys["arrowup"]||keys["w"]) iy -= 1;
+    if(keys["arrowdown"]||keys["s"]) iy += 1;
+    if(keys["arrowleft"]||keys["a"]) ix -= 1;
+    if(keys["arrowright"]||keys["d"]) ix += 1;
+    const hasInput = (ix||iy);
+    if(hasInput){
+      lastInputTimestamp = now;
+      if(CONFIG.clickMove && CONFIG.clickMove.cancelOnKey) goal.active = false;
+    }
+    let gx=0, gy=0, toGoal=false;
+    if(goal.active){
+      const dxg = goal.x - rx, dyg = goal.y - ry;
+      const distg = Math.hypot(dxg, dyg);
+      if(distg <= (CONFIG.clickMove.stopRadius||14)){
+        goal.active = false; rxv = 0; ryv = 0;
+      } else {
+        gx = dxg / distg; gy = dyg / distg; toGoal = true;
+      }
+    }
+    let F = PHYS.friction;
+    const idle = !hasInput && !toGoal && PHYS.autoBrake.enabled && (now - lastInputTimestamp) > PHYS.autoBrake.delayMs;
+    if(idle) F += Math.max(0, PHYS.autoBrake.extraFriction||0);
+    if(hasInput){
+      const len=Math.hypot(ix,iy); ix/=len; iy/=len;
+      rxv += ix*PHYS.accel*dtSec; ryv += iy*PHYS.accel*dtSec;
+    } else if(toGoal){
+      rxv += gx*PHYS.accel*dtSec; ryv += gy*PHYS.accel*dtSec;
+    } else {
+      rxv -= rxv*F*dtSec; ryv -= ryv*F*dtSec;
+      if(Math.hypot(rxv,ryv) < PHYS.stopEpsilon){ rxv=0; ryv=0; }
+    }
+    const sp=Math.hypot(rxv,ryv);
+    if(sp>PHYS.maxSpeed){
+      const k=PHYS.maxSpeed/sp; rxv*=k; ryv*=k;
+    }
+    rx = clamp(rx + rxv*dtSec, 0, CONFIG.virtualWidth);
+    ry = clamp(ry + ryv*dtSec, 0, CONFIG.virtualHeight);
+    yo.style.left = rx + "px"; yo.style.top = ry + "px";
+    const moving = (Math.hypot(rxv,ryv) > 0.1) || hasInput || toGoal;
+    updateCamera(true, !moving);
+    checkProximity();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  window.addEventListener("resize", ()=> updateCamera(true));
+
+  (function(){
+    const panel = document.getElementById('diag');
+    const ulSummary = document.getElementById('diag-summary');
+    const ulUsed    = document.getElementById('diag-used');
+    const ulAvail   = document.getElementById('diag-availability');
+    const btnColor  = document.getElementById('diag-color');
+    const btnClose  = document.getElementById('diag-close');
+    let colored = false;
+
+    function collectUsedByFont(){
+      const map = new Map();
+      document.querySelectorAll('.name').forEach(el => {
+        const ff = el.getAttribute('data-font') || el.style.fontFamily || 'desconocida';
+        const nm = el.textContent || '';
+        if(!map.has(ff)) map.set(ff, []);
+        map.get(ff).push(nm);
+      });
+      return new Map([...map.entries()].sort((a,b)=> a[0].localeCompare(b[0])));
+    }
+
+    function renderDiag(){
+      ulSummary.innerHTML = "";
+      ulUsed.innerHTML    = "";
+      ulAvail.innerHTML   = "";
+
+      const usedByFont = collectUsedByFont();
+      const stacks = [...usedByFont.keys()];
+      const totalPeople = document.querySelectorAll('.name').length;
+
+      const logicalUnique = stacks.length === totalPeople;
+      const liSum = document.createElement('li');
+      liSum.innerHTML = logicalUnique
+        ? `<span class="ok">✔ Un stack por persona</span> (${stacks.length}/${totalPeople})`
+        : `<span class="warn">⚠ Hay más personas (${totalPeople}) que stacks distintos (${stacks.length})</span>`;
+      ulSummary.appendChild(liSum);
+
+      usedByFont.forEach((names, fam) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<b>${fam}</b> — ${names.length} nombre(s)<br><span class="small">${names.join(', ')}</span>`;
+        ulUsed.appendChild(li);
+      });
+
+      let installedCount = 0;
+      stacks.forEach(stack => {
+        const first = getFirstFamilyName(stack);
+        const available = isFontAvailable(first);
+        if(available) installedCount++;
+
+        const li = document.createElement('li');
+        const status = available
+          ? `<span class="ok">✔</span>`
+          : `<span class="fail">✖</span>`;
+
+        li.innerHTML = `${status} <span class="mono">${first || '(genérico)'}</span> <span class="small">en stack:</span> <span class="mono">${stack}</span>`;
+        ulAvail.appendChild(li);
+      });
+
+      const liInstalled = document.createElement('li');
+      liInstalled.innerHTML = `<b>Familias principales disponibles:</b> ${installedCount}/${stacks.length}`;
+      ulSummary.appendChild(liInstalled);
+
+      btnColor.textContent = colored ? "Quitar color" : "Colorear por fuente";
+    }
+
+    function colorizeToggle(){
+      const fonts = [...new Set([...document.querySelectorAll('.name')]
+        .map(n => n.getAttribute('data-font') || n.style.fontFamily))];
+      if(!colored){
+        const palette = fonts.map((_,i)=>`hsl(${(i/fonts.length)*360},80%,35%)`);
+        document.querySelectorAll('.name').forEach(el=>{
+          const idx = fonts.indexOf(el.getAttribute('data-font') || el.style.fontFamily);
+          el.style.color = palette[idx];
+        });
+        colored = true;
+      } else {
+        document.querySelectorAll('.name').forEach(el=>{ el.style.color = ""; });
+        colored = false;
+      }
+      btnColor.textContent = colored ? "Quitar color" : "Colorear por fuente";
+    }
+
+    btnColor.addEventListener('click', colorizeToggle);
+    btnClose.addEventListener('click', ()=> panel.style.display='none');
+
+    function toggle(){
+      if(panel.style.display === 'none' || !panel.style.display){
+        renderDiag();
+        panel.style.display = 'block';
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+    window.addEventListener('keydown', (e)=>{
+      const k = e.key.toLowerCase();
+      if(k==='i' && (e.ctrlKey || e.metaKey)){
+        e.preventDefault(); toggle();
+      }
+    });
+  })();
+
+  function toggleDiag(){ /* manejado desde el módulo diag */ }
+})();
+</script>
+</body>
+</html>
