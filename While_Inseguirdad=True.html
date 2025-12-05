@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>While_Inseguirdad=True</title>
+
+<!-- Matter.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+<style>
+  :root { --col-width:420px; --font-size:20px; --bg:#ffffff; }
+  html,body{ height:100%; margin:0; font-family:Arial, sans-serif; background:var(--bg); color:#111; }
+
+  /* scroller centrado; inicio vertical en mitad de pantalla */
+  #scroller { height:100vh; overflow:auto; -webkit-overflow-scrolling:touch; }
+  .content { padding-top:50vh; padding-bottom:300vh; box-sizing:border-box; }
+  .column {
+    width: var(--col-width);
+    max-width:92vw;
+    margin: 0 auto;
+    text-align:left;
+    font-size: var(--font-size);
+    line-height:1.4;
+    padding: 0 12px;
+    box-sizing:border-box;
+    position:relative;
+  }
+  .title { font-size:var(--font-size); margin:0 0 6px 0; white-space:nowrap; text-align:left; }
+
+  .line {
+    display:block;
+    margin:4px 0;
+    cursor:grab;
+    user-select:none;
+    touch-action:none;
+    transition: transform 160ms ease;
+    font-size:var(--font-size);
+  }
+
+  .line.placeholder {
+    visibility: hidden;
+    pointer-events: none;
+    height: 1.3em; /* reserva espacio */
+  }
+
+  #physicslayer { position:fixed; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:9999; }
+  .clone {
+    position:absolute;
+    pointer-events:none;
+    white-space:nowrap;
+    transform-origin:center center;
+    opacity:0;
+    transition: opacity 160ms ease;
+    will-change: transform, left, top;
+  }
+
+  #sentinel { height: 1px; width: 100%; display:block; }
+</style>
+</head>
+<body>
+
+<!-- referencia interna (no mostrada) -->
+<script>const referenceImagePath = "/mnt/data/cambios 3.JPG";</script>
+
+<div id="scroller" aria-label="Poesía interactiva">
+  <div class="content">
+    <div class="column" id="column" role="list">
+      <div class="title" id="title">Era una flor con muchos pétalos</div>
+      <!-- pairs appended here -->
+      <div id="sentinel" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<div id="physicslayer" aria-hidden="true"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  /* ------------------- CONFIGURACIÓN (afinada) ------------------- */
+  const CONFIG = {
+    ARM_THRESHOLD: 55,
+    REMOVE_THRESHOLD: 22,
+    FLY_LIFETIME: 4200,
+    GRAVITY: 0.12,            // aún más ligera
+    AIR_FRICTION: 0.02,      // fricción aérea controlada
+    STIFFNESS: 0.05,
+    DAMPING: 0.06,
+    INITIAL_PAIRS: 24,
+    APPEND_BATCH: 20,
+    WIND_STRENGTH: 0.00002,   // brisa muy sutil
+    WIND_VARIATION: 0.00001,
+    ANGULAR_IMPULSE_LIMIT: 0.12 // impulso angular reducido
+  };
+
+  /* ---------------- DOM refs ---------------- */
+  const scroller = document.getElementById('scroller');
+  const column = document.getElementById('column');
+  const physicsLayer = document.getElementById('physicslayer');
+  const sentinel = document.getElementById('sentinel');
+
+  /* ---------------- Matter.js engine ---------------- */
+  const { Engine, World, Bodies, Body, Runner, Constraint } = Matter;
+  const engine = Engine.create();
+  engine.gravity.y = CONFIG.GRAVITY;
+  const runner = Runner.create();
+  Runner.run(runner, engine);
+
+  /* No walls: permitimos que salgan del viewport sin quedar pegados */
+
+  /* flying clones map */
+  const flying = new Map();
+
+  /* Render loop: brisa muy sutil y damping rotacional */
+  let windPhase = 0;
+  (function renderLoop(){
+    windPhase += 0.006; // más lento
+    const windBase = Math.sin(windPhase) * CONFIG.WIND_STRENGTH;
+
+    for (const [body, entry] of flying.entries()){
+      if (!entry.el) continue;
+      const { x, y } = body.position;
+      const angle = body.angle;
+      entry.el.style.left = (x - entry.w/2) + 'px';
+      entry.el.style.top  = (y - entry.h/2) + 'px';
+
+      // apply very subtle wind
+      if (body && !body.isStatic) {
+        const offset = (body.id % 9) * 0.000001 + (Math.random() - 0.5) * CONFIG.WIND_VARIATION;
+        try {
+          Body.applyForce(body, body.position, { x: windBase + offset, y: 0 });
+        } catch(e) {}
+      }
+
+      // rotacional damping manual (reducción multiplicativa suave)
+      try {
+        const av = body.angularVelocity || 0;
+        // multiply angularVelocity by factor <1 to damp; do not set to 0
+        const damped = av * 0.94;
+        // only set if difference is meaningful to avoid tiny writes
+        if (Math.abs(damped - av) > 1e-5) Body.setAngularVelocity(body, damped);
+      } catch(e) {}
+
+      const sx = entry.scaleX ?? 1;
+      const sy = entry.scaleY ?? 1;
+      entry.el.style.transform = `rotate(${angle}rad) scale(${sx}, ${sy})`;
+      if (entry.visible) entry.el.style.opacity = '1';
+    }
+    requestAnimationFrame(renderLoop);
+  })();
+
+  function removeFlyingGracefully(body){
+    if (!flying.has(body)) return;
+    const entry = flying.get(body);
+    if (entry && entry.el){
+      entry.el.style.transition = 'opacity 420ms ease, transform 420ms ease';
+      entry.el.style.opacity = 0;
+      entry.el.style.transform = (entry.el.style.transform || '') + ' scale(0.92)';
+    }
+    setTimeout(()=> {
+      if (flying.has(body)){
+        const entry2 = flying.get(body);
+        if (entry2 && entry2.el && entry2.el.parentNode) entry2.el.parentNode.removeChild(entry2.el);
+        try { World.remove(engine.world, body); } catch(e){}
+        flying.delete(body);
+      }
+    }, 520);
+  }
+
+  /* cleanup cuerpos muy lejos para no acumular */
+  setInterval(()=> {
+    for (const body of Array.from(flying.keys())){
+      const p = body.position;
+      if (p.y > window.innerHeight + 2500 || p.x < -3500 || p.x > window.innerWidth + 3500){
+        if (flying.has(body)){
+          const e = flying.get(body);
+          if (e && e.el && e.el.parentNode) e.el.parentNode.removeChild(e.el);
+        }
+        try { World.remove(engine.world, body); } catch(e){}
+        flying.delete(body);
+      }
+    }
+  }, 1000);
+
+  /* ------------------ Modelo (pares) ------------------ */
+  const pairs = []; // {meNode, noNode, removedMe, removedNo, noIsPlaceholder}
+
+  function makeNoPlaceholder(){
+    const ph = document.createElement('div');
+    ph.className = 'line placeholder';
+    ph.textContent = ''; // reserva espacio
+    return ph;
+  }
+
+  function createPairRespectingInseg(){
+    const me = document.createElement('div');
+    me.className = 'line';
+    me.textContent = 'Me quiere.';
+    column.insertBefore(me, sentinel);
+
+    let no, noIsPlaceholder = false;
+    if (window.inseguridad === false) {
+      no = makeNoPlaceholder();
+      noIsPlaceholder = true;
+    } else {
+      no = document.createElement('div');
+      no.className = 'line';
+      no.textContent = 'No me quiere.';
+      noIsPlaceholder = false;
+    }
+    column.insertBefore(no, sentinel);
+
+    const pair = { meNode: me, noNode: no, removedMe: false, removedNo: false, noIsPlaceholder };
+    pairs.push(pair);
+
+    attachPetalHandlers(me, pair, 'me');
+    if (!noIsPlaceholder) attachPetalHandlers(no, pair, 'no');
+  }
+
+  function createBatchRespectingInseg(n){
+    for (let i=0;i<n;i++) createPairRespectingInseg();
+  }
+
+  createBatchRespectingInseg(CONFIG.INITIAL_PAIRS);
+
+  /* IntersectionObserver sentinel -> append more pairs */
+  const observer = new IntersectionObserver(entries => {
+    for (const ent of entries){
+      if (ent.isIntersecting){
+        createBatchRespectingInseg(CONFIG.APPEND_BATCH);
+      }
+    }
+  }, { root: scroller, rootMargin: '600px', threshold: 0 });
+  observer.observe(sentinel);
+
+  /* ---------------- inseguridad + eval helper + console B ---------------- */
+  let _inseg = true;
+  Object.defineProperty(window, 'inseguridad', {
+    configurable: true,
+    enumerable: true,
+    get() { return _inseg; },
+    set(v) {
+      const newVal = (typeof v === 'string') ? (v.toLowerCase() === 'false' ? false : v.toLowerCase() === 'true' ? true : Boolean(v)) : Boolean(v);
+      _inseg = newVal;
+
+      if (!_inseg) {
+        pairs.forEach(p => {
+          if (!p.removedNo && !p.noIsPlaceholder){
+            const ph = makeNoPlaceholder();
+            p.noNode.parentNode.replaceChild(ph, p.noNode);
+            p.noNode = ph;
+            p.noIsPlaceholder = true;
+          }
+        });
+      } else {
+        pairs.forEach(p => {
+          if (!p.removedNo && p.noIsPlaceholder){
+            const real = document.createElement('div');
+            real.className = 'line';
+            real.textContent = 'No me quiere.';
+            p.noNode.parentNode.replaceChild(real, p.noNode);
+            p.noNode = real;
+            p.noIsPlaceholder = false;
+            attachPetalHandlers(real, p, 'no');
+          }
+        });
+      }
+
+      const style = 'background:#222;color:#bada55;padding:2px 6px;border-radius:3px;font-family:monospace';
+      console.log('%c' + `inseguridad == ${_inseg ? 'True' : 'False'}`, style);
+
+      return _inseg;
+    }
+  });
+
+  window.evalInseguridad = function(expr){
+    if (typeof expr !== 'string') return console.warn('evalInseguridad expects a string like "inseguridad == false"');
+    const m = expr.match(/inseguridad\s*(==|=)\s*(true|false)/i);
+    if (!m) return console.warn('expresión no reconocida. Usa "inseguridad = false" o "inseguridad == false"');
+    const val = (m[2].toLowerCase() === 'true');
+    window.inseguridad = val;
+    return val;
+  };
+
+  /* -------------- Interacción: arrancar pétalos (A+B+C afinados) -------------- */
+  function attachPetalHandlers(node, pair, which){
+    let dragging=false, startX=0, startY=0, lastMoves=[], pointerConstraint=null, body=null, cloneEl=null, armed=false, detached=false, localGrabX=0;
+
+    function computeVelocity(){
+      let vx=0, vy=-4; // vy biased upward small
+      if (lastMoves.length >= 2){
+        const a = lastMoves[lastMoves.length-1];
+        let b = lastMoves[0];
+        for (let i=lastMoves.length-2;i>=0;i--){
+          if (a.t - lastMoves[i].t > 25) { b = lastMoves[i]; break; }
+        }
+        const dt = (a.t - b.t)/1000 || 0.016;
+        vx = (a.x - b.x)/dt / 40; // scaled down
+        vy = (a.y - b.y)/dt / 40;
+        vy = vy * -1 - 2;
+      }
+      const maxV = 12;
+      vx = Math.max(-maxV, Math.min(maxV, vx));
+      vy = Math.max(-maxV, Math.min(maxV, vy));
+      return { vx, vy };
+    }
+
+    function isOutside(x,y){
+      const r = column.getBoundingClientRect();
+      return x < r.left - 4 || x > r.right + 4 || y < r.top - 4 || y > r.bottom + 4;
+    }
+
+    function onPointerDown(e){
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      lastMoves = [{t:Date.now(), x:e.clientX, y:e.clientY}];
+      armed = false; detached = false;
+
+      const rect = node.getBoundingClientRect();
+      localGrabX = startX - rect.left;
+
+      // clone DOM and body with gentle parameters
+      cloneEl = node.cloneNode(true);
+      cloneEl.className = 'clone';
+      cloneEl.style.left = rect.left + 'px';
+      cloneEl.style.top  = rect.top  + 'px';
+      cloneEl.style.width = rect.width + 'px';
+      cloneEl.style.height= rect.height + 'px';
+      cloneEl.style.fontSize = window.getComputedStyle(node).fontSize;
+      cloneEl.style.opacity = 0;
+      cloneEl.style.transition = 'opacity 160ms ease, transform 300ms ease';
+      physicsLayer.appendChild(cloneEl);
+
+      const cx = rect.left + rect.width/2;
+      const cy = rect.top  + rect.height/2;
+
+      body = Bodies.rectangle(cx, cy, rect.width, rect.height, {
+        restitution: 0.16,                // suave
+        friction: 0.01,
+        frictionAir: CONFIG.AIR_FRICTION,
+        angle: 0
+      });
+      // aumentar inercia para reducir giros bruscos
+      Body.setInertia(body, body.inertia * 3.0);
+      Body.setAngularVelocity(body, 0);
+      World.add(engine.world, body);
+
+      flying.set(body, { el: cloneEl, w: rect.width, h: rect.height, scaleX: 1, scaleY: 1, visible: false });
+
+      const localPoint = { x: startX - cx, y: startY - cy };
+
+      pointerConstraint = Constraint.create({
+        pointA: { x: startX, y: startY },
+        bodyB: body,
+        pointB: { x: localPoint.x, y: localPoint.y },
+        stiffness: CONFIG.STIFFNESS,
+        damping: CONFIG.DAMPING,
+        length: 0
+      });
+      World.add(engine.world, pointerConstraint);
+
+      const originPercent = Math.max(0, Math.min(100, (localGrabX / rect.width) * 100));
+      node.style.transformOrigin = `${originPercent}% 50%`;
+      cloneEl.style.transformOrigin = `${originPercent}% 50%`;
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+
+      e.stopPropagation();
+    }
+
+    function onPointerMove(e){
+      if (!dragging) return;
+      lastMoves.push({t:Date.now(), x:e.clientX, y:e.clientY});
+      if (lastMoves.length > 14) lastMoves.shift();
+
+      if (pointerConstraint){
+        pointerConstraint.pointA.x = e.clientX;
+        pointerConstraint.pointA.y = e.clientY;
+      }
+
+      if (body && flying.has(body)){
+        const bpos = body.position;
+        const dx = pointerConstraint.pointA.x - bpos.x;
+        const dy = pointerConstraint.pointA.y - bpos.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist > CONFIG.ARM_THRESHOLD){
+          armed = true;
+          const maxStretch = 120;
+          const s = Math.min(dist / maxStretch, 1);
+          const scaleX = 1 - 0.18 * s;
+          const scaleY = 1 + 0.28 * s;
+          const tilt = Math.sign(dx) * 0.10 * s;
+          node.style.transform = `rotate(${tilt}rad) scale(${scaleX}, ${scaleY})`;
+        } else {
+          armed = false;
+          node.style.transform = '';
+        }
+      }
+
+      if (armed && isOutside(e.clientX, e.clientY) && !detached){
+        doDetach();
+        detached = true;
+      }
+    }
+
+    function doDetach(){
+      if (!body || !cloneEl) return;
+
+      // hide original but keep space
+      node.style.visibility = 'hidden';
+      node.style.pointerEvents = 'none';
+
+      // mark removed
+      if (which === 'me') pair.removedMe = true;
+      else pair.removedNo = true;
+
+      // show clone
+      const entry = flying.get(body);
+      if (entry){
+        entry.visible = true;
+        entry.scaleX = 1; entry.scaleY = 1;
+        entry.el.style.opacity = 1;
+      }
+
+      if (pointerConstraint) { try { World.remove(engine.world, pointerConstraint); } catch(e){} pointerConstraint = null; }
+
+      // compute release velocity (más suave)
+      const { vx, vy } = computeVelocity();
+      const appliedVX = Math.max(-6, Math.min(6, vx + (Math.random()*2-1) * 0.25));   // menor horizontal
+      const appliedVY = Math.max(-10, Math.min(10, vy + (Math.random()*0.6 - 0.3))); // menor vertical
+      Body.setVelocity(body, { x: appliedVX, y: appliedVY });
+
+      // angular impulse reducido y clamp
+      const ang = (Math.random()*2-1) * CONFIG.ANGULAR_IMPULSE_LIMIT;
+      Body.setAngularVelocity(body, Math.max(-0.35, Math.min(0.35, ang)));
+
+      // small nudge to avoid sticking (tiny)
+      try { Body.applyForce(body, body.position, { x: (Math.random() - 0.5) * CONFIG.WIND_VARIATION * 4, y: 0 }); } catch(e){}
+
+      setTimeout(()=> removeFlyingGracefully(body), CONFIG.FLY_LIFETIME);
+    }
+
+    function onPointerUp(e){
+      if (!dragging) return;
+      dragging = false;
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      const last = lastMoves[lastMoves.length-1] || { x: startX, y: startY };
+      const totalDx = last.x - startX;
+      const wasPulled = Math.abs(totalDx) > CONFIG.REMOVE_THRESHOLD;
+
+      if (armed && wasPulled && !detached){
+        doDetach();
+        detached = true;
+        return;
+      }
+
+      if (!detached){
+        node.style.transition = 'transform 220ms cubic-bezier(.2,.9,.3,1)';
+        node.style.transform = '';
+        setTimeout(()=> {
+          if (pointerConstraint){ try { World.remove(engine.world, pointerConstraint); } catch(e){} pointerConstraint = null; }
+          if (body && flying.has(body)){
+            const ent = flying.get(body);
+            if (ent && ent.el && ent.el.parentNode) ent.el.parentNode.removeChild(ent.el);
+            try { World.remove(engine.world, body); } catch(e){}
+            flying.delete(body);
+          }
+        }, 200);
+      }
+    }
+
+    node.addEventListener('pointerdown', onPointerDown);
+  }
+
+  /* inicial: asegura placeholders si inseguridad=false */
+  if (window.inseguridad === false) {
+    pairs.forEach(p => {
+      if (!p.removedNo && !p.noIsPlaceholder) {
+        const ph = makeNoPlaceholder();
+        p.noNode.parentNode.replaceChild(ph, p.noNode);
+        p.noNode = ph;
+        p.noIsPlaceholder = true;
+      }
+    });
+  }
+
+  // listo
+}); // DOMContentLoaded
+</script>
+</body>
+</html>
