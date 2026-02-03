@@ -23,12 +23,13 @@
     </div>
 
 <script>
-// utilidades de limpieza
 const strip = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-const cleanW = w => strip(w.toLowerCase()).replace(/^[^a-zñ]+|[^a-zñ]+$/g, "");
+// Solo para el cálculo interno
+const cleanW = w => strip(w.toLowerCase()).replace(/[^a-zñ]/g, "");
 
 // PEGA AQUÍ TU LISTA DEL JSON
-const lexico = ["ababa",
+const lexico = [
+    "ababa",
         "ababillar",
         "ababol",
         "abacá",
@@ -66800,11 +66801,15 @@ function calcDist(a, b) {
 
 function render(txt) {
     const tokens = txt.trim().split(/\s+/);
+    // Filtramos solo los números de distancia, pero protegemos palabras con puntuación
     const words = tokens.filter(t => !/^-?\d+$/.test(t) && t !== "?" && t !== "...");
+    
     if (!words.length) return "";
+    
     let res = [words[0]];
     for (let i = 1; i < words.length; i++) {
-        res.push(calcDist(words[i-1], words[i]), words[i]);
+        const d = calcDist(words[i-1], words[i]);
+        res.push(String(d), words[i]);
     }
     return res.join(" ");
 }
@@ -66820,16 +66825,17 @@ function setCursor(el) {
 
 const ed = document.getElementById("editor");
 
-// Carga inicial de la obra
 window.onload = () => {
-    const fraseInicial = "Hay mucha distancia entre tu casa y la mía";
-    ed.innerText = render(fraseInicial) + " ";
+    const frase = "Hay mucha distancia entre tu casa y la mía";
+    ed.innerText = render(frase) + " ";
     setCursor(ed);
 };
 
 ed.addEventListener("keyup", e => {
     if (e.key === " ") {
-        ed.innerText = render(ed.innerText) + " ";
+        // Guardamos el texto actual para procesarlo
+        const currentText = ed.innerText;
+        ed.innerText = render(currentText) + " ";
         setCursor(ed);
     }
 });
@@ -66856,8 +66862,20 @@ ed.addEventListener("keydown", e => {
         if (targetIdx > 0 && targetIdx < parts.length - 1) {
             const vPrev = parts[targetIdx - 1];
             const distIn = parseInt(parts[targetIdx]);
+            
+            // Calculamos nueva palabra basada en la limpia
             const newPos = getIdx(vPrev) + distIn + 1;
-            if (newPos >= 0 && newPos < lexico.length) parts[targetIdx + 1] = lexico[newPos];
+            
+            if (newPos >= 0 && newPos < lexico.length) {
+                const nextWordRaw = parts[targetIdx + 1];
+                // Extraemos cualquier signo al final de la palabra siguiente (.,!?)
+                const match = nextWordRaw.match(/([^a-zA-ZñáéíóúÁÉÍÓÚ]+)$/);
+                const punct = match ? match[0] : "";
+                
+                // Sustituimos la palabra pero le devolvemos su puntuación
+                parts[targetIdx + 1] = lexico[newPos] + punct;
+            }
+            
             const soloPalabras = parts.filter(p => !/^-?\d+$/.test(p));
             ed.innerText = render(soloPalabras.join(" ")) + " ";
             setCursor(ed);
