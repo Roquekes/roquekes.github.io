@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>#000000</title>
   <style>
-    
     html, body {
       margin: 0;
       padding: 0;
@@ -20,7 +19,6 @@
       /* Evita scroll, zoom y menús contextuales */
       touch-action: none;
       -webkit-tap-highlight-color: transparent;
-      overflow: hidden;
     }
 
     #word-container {
@@ -32,12 +30,12 @@
       color: #ffffff;
       text-align: center;
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-
-      /* BLOQUEO DE SELECCIÓN ESTRICTO */
-      user-select: none;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
+      
+      /* BLOQUEO TOTAL DE SELECCIÓN DE TEXTO */
+      -webkit-user-select: none; /* Safari */
+      -moz-user-select: none;    /* Firefox */
+      -ms-user-select: none;     /* IE10+ */
+      user-select: none;         /* Estándar */
     }
 
     @keyframes shake {
@@ -82,19 +80,14 @@ No pido tanto. Jaquecas, miedos, otra idea. Esta es demasiado buena debería ano
     const wordContainer = document.getElementById("word-container");
     wordContainer.textContent = words[currentIndex];
 
-    // Bloquea el menú contextual (clic derecho / pulsación larga)
-    window.oncontextmenu = function(event) {
-         event.preventDefault();
-         event.stopPropagation();
-         return false;
-    };
-
     function stopAudioAndInterval() {
       clearInterval(holdInterval);
       holdInterval = null;
       if (osc) {
-        osc.stop();
-        ctx.close();
+        try {
+          osc.stop();
+          ctx.close();
+        } catch(e) {}
         osc = null;
         ctx = null;
         gainNode = null;
@@ -125,7 +118,7 @@ No pido tanto. Jaquecas, miedos, otra idea. Esta es demasiado buena debería ano
     }
 
     function handleStart(e) {
-      // Importante: evita que el móvil active la selección de texto
+      // ESTO ES CLAVE: evita que el móvil active la selección de texto o el zoom
       if (e.cancelable) e.preventDefault();
 
       const txt = wordContainer.textContent;
@@ -133,6 +126,8 @@ No pido tanto. Jaquecas, miedos, otra idea. Esta es demasiado buena debería ano
         resetToInitial();
         return;
       }
+
+      if (holdInterval) return; // Evita duplicados en toques rápidos
 
       wordContainer.style.cursor = 'none';
       document.body.style.cursor = 'none';
@@ -151,7 +146,7 @@ No pido tanto. Jaquecas, miedos, otra idea. Esta es demasiado buena debería ano
 
       holdInterval = setInterval(() => {
         currentFreq += freqStep;
-        if (osc) osc.frequency.setValueAtTime(currentFreq, ctx.currentTime);
+        if (osc && ctx) osc.frequency.setValueAtTime(currentFreq, ctx.currentTime);
 
         if (currentIndex < words.length - 1) {
           currentIndex += 1;
@@ -170,7 +165,9 @@ No pido tanto. Jaquecas, miedos, otra idea. Esta es demasiado buena debería ano
     }
 
     function handleRelease(e) {
-      if (reachedEnd || !holdInterval) return;
+      if (e) e.preventDefault();
+      if (reachedEnd) return;
+      if (!holdInterval) return;
 
       stopAudioAndInterval();
 
@@ -181,13 +178,15 @@ No pido tanto. Jaquecas, miedos, otra idea. Esta es demasiado buena debería ano
       }
     }
 
-    // Ratón
+    // Eventos de ratón
     wordContainer.addEventListener("mousedown", handleStart);
-    window.addEventListener("mouseup", handleRelease);
+    window.addEventListener("mouseup", handleRelease); // Escucha en toda la ventana por seguridad
 
-    // Táctil
-    wordContainer.addEventListener("touchstart", handleStart, { passive: false });
-    window.addEventListener("touchend", handleRelease);
+    // Eventos táctiles (Móvil)
+    wordContainer.addEventListener("touchstart", handleStart, {passive: false});
+    wordContainer.addEventListener("touchend", handleRelease, {passive: false});
+    wordContainer.addEventListener("touchcancel", handleRelease, {passive: false});
+
   </script>
 </body>
 </html>
