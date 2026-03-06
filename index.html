@@ -10,16 +10,17 @@
             font-family: Arial, sans-serif;
             margin: 0;
             display: flex;
-            justify-content: center; 
-            align-items: center;     
+            justify-content: center;
+            align-items: center;
             min-height: 100vh;
+            padding: 20px;
         }
 
         nav {
-            width: 90%;
-            max-width: 450px;
             display: flex;
             flex-direction: column;
+            width: 100%;
+            max-width: fit-content;
         }
 
         ul {
@@ -36,15 +37,19 @@
             text-decoration: none;
             color: #000000;
             font-size: 18px;
+            white-space: nowrap;
         }
 
         .proyectos {
+            align-self: flex-start;
             text-align: left;
         }
 
         .redes {
+            align-self: flex-end;
             text-align: right;
             margin-top: 40px;
+            width: 100%;
         }
 
         .redes a, .redes span {
@@ -60,6 +65,13 @@
 
         a:hover {
             text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            a {
+                white-space: normal;
+                font-size: 16px;
+            }
         }
     </style>
 </head>
