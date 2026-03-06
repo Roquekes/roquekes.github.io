@@ -1,204 +1,88 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <title>Roquekes</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    /* Minimal / blanco */
-    html,body{height:100%;margin:0}
-    body{background:#ffffff;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;color:#111}
-    svg{width:100vw;height:100vh;display:block;cursor:grab}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index - Proyectos</title>
+    <style>
+        body {
+            background-color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center; 
+            align-items: center;     
+            min-height: 100vh;
+        }
 
-    /* Remove mobile tap highlight and focus outline */
-    * { -webkit-tap-highlight-color: transparent; }
-    .node:focus, circle:focus { outline: none; }
+        /* El "cuadrado" imaginario en el centro */
+        nav {
+            width: 450px; /* Ancho fijo para que se note el desplazamiento a la derecha */
+            display: flex;
+            flex-direction: column;
+        }
 
-    /* Tooltip (kept but not used by default) */
-    .tooltip{position:fixed;pointer-events:none;background:rgba(0,0,0,0.8);color:#fff;padding:6px 8px;border-radius:6px;font-size:13px;opacity:0;transform:translate(-50%,-120%);white-space:nowrap}
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
 
-    /* Node text styles: smaller, dark, positioned above the circle */
-    .node text{font-family:inherit;fill:#111;font-weight:600;font-size:13px}
+        li {
+            margin: 12px 0;
+        }
 
-    /* subtle link lines */
-    line{stroke:#e6e6e6;stroke-width:1.2}
-  </style>
+        a {
+            text-decoration: none;
+            color: #000000;
+            font-size: 18px;
+        }
+
+        /* Primer bloque: Alineado a la izquierda (por defecto) */
+        .proyectos {
+            text-align: left;
+        }
+
+        /* Segundo bloque: Todo a la derecha e Italic */
+        .redes {
+            text-align: right;
+            margin-top: 40px; /* Espacio de separación */
+        }
+
+        .redes a, .redes span {
+            font-style: italic;
+            display: block; /* Para que el text-align: right funcione en los links */
+        }
+
+        .separador {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-  <svg id="graph" role="img" aria-label="Mapa interactivo de nodos del portfolio"></svg>
-  <!-- tooltip element left in case you want to re-enable it later -->
-  <div id="tooltip" class="tooltip" aria-hidden="true" style="display:none"></div>
 
-  <script>
-    // ---------- NODOS (editar según necesites) ----------
-    const nodes = [
-      { id: 1,  titulo: '#000000', link: 'dormir.html', grupos: ['proyectos','audio'] },
-      { id: 2,  titulo: 'Es el cumple de mi hermano así que también el mío', link: 'Cumple/cumple.html', grupos: ['proyectos','visual'] },
-      { id: 3,  titulo: 'While_Inseguirdad=True', link: 'While_Inseguirdad=True.html', grupos: ['proyectos','naturaleza'] },
-      { id: 4,  titulo: 'YO', link: 'nombres.html', grupos: ['textos','proyectos'] },
-      { id: 5,  titulo: 'SSMM', link: 'SSMM.html', grupos: ['fotografia','proyectos'] },
-      { id: 6,  titulo: 'Hay mucha distancia entre tu casa y la mía', link: 'Hay mucha distancia entre tu casa y la mía.html', grupos: ['experimental','proyectos'] },
-      { id: 7,  titulo: 'Itch.io', link: 'diario.html', grupos: ['textos','personal','proyectos'] },
-      { id: 8,  titulo: 'Cartografía', link: 'https://example.com/fuga', grupos: ['audio','externo','proyectos'] },
-      { id: 9,  titulo: 'Juego de Palabras', link: 'serie-x.html', grupos: ['visual','proyectos'] },
-      { id: 10, titulo: 'JugarJueguitos', link: 'interfaz.html', grupos: ['ux','proyectos'] },
-      { id: 11, titulo: 'Plug', link: 'anotaciones.html', grupos: ['texto','notas','proyectos'] },
-      { id: 12, titulo: 'Pobre Mario', link: 'collage.html', grupos: ['fotografia','visual','proyectos'] }
-    ];
+    <nav>
+        <ul class="proyectos">
+            <li><a href="000000.html">#000000</a></li>
+            <li><a href="While_Inseguirdad=True.html">While_Inseguirdad=True</a></li>
+            <li><a href="yo.html">YO</a></li>
+            <li><a href="Hay mucha distancia entre tu casa y la mía.html">Hay mucha distancia entre tu casa y la mía</a></li>
+        </ul>
 
-    // Primer grupo principal (para color)
-    nodes.forEach(n => { n.grupoPrincipal = (n.grupos && n.grupos.length) ? n.grupos[0] : 'otros'; });
-    const temasUnicos = Array.from(new Set(nodes.map(n=>n.grupoPrincipal)));
+        <div class="redes">
+            <span class="separador"> </span>
+            <ul>
+                <li><a href="https://roquekes.itch.io/">Itch.io</a></li>
+                <li><a href="https://linktr.ee/jugarjueguitos">JugarJueguitos</a></li>
+            </ul>
+        </div>
+    </nav>
 
-    // ---------- AUDIO (WebAudio) ----------
-    let audioCtx = null;
-    function initAudio(){
-      if (!audioCtx){
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return false;
-        audioCtx = new AC();
-      }
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      return true;
-    }
-
-    function playNote(freq=440, duration=0.35, type='sine'){
-      if (!audioCtx) return;
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.14, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(now); osc.stop(now + duration);
-    }
-
-    // asignar frecuencia por nodo (escala simple)
-    const base = 220;
-    nodes.forEach((n,i)=>{ n.freq = base * Math.pow(1.06, i); }); // progresión multiplicativa
-
-    // ---------- SVG + D3 ----------
-    const svg = d3.select('#graph');
-    let width = window.innerWidth; let height = window.innerHeight;
-    svg.attr('viewBox', [0,0,width,height]);
-
-    const container = svg.append('g');
-    const linkG = container.append('g');
-    const nodeG = container.append('g');
-
-    const color = d3.scaleOrdinal().domain(temasUnicos).range(['#0b66ff','#ff6b6b','#ffd166','#06d6a0','#8e44ad','#f29f05','#2b9eb3','#bdbdbd']);
-
-    // crear links si comparten grupo
-    const links = [];
-    for (let i=0;i<nodes.length;i++){
-      for (let j=i+1;j<nodes.length;j++){
-        const A = nodes[i].grupos||[]; const B = nodes[j].grupos||[];
-        if (A.some(t=>B.includes(t))) links.push({ source: nodes[i].id, target: nodes[j].id });
-      }
-    }
-
-    // posiciones iniciales aleatorias para esparcir
-    nodes.forEach(n=>{ n.x = Math.random() * width; n.y = Math.random() * height; });
-    const NODE_RADIUS = 22;
-
-    const link = linkG.selectAll('line').data(links).join('line').attr('stroke','rgba(0,0,0,0.06)').attr('stroke-width',1.2);
-
-    const node = nodeG.selectAll('g').data(nodes, d=>d.id).join('g').attr('class','node').style('cursor','pointer');
-    node.append('circle').attr('r', NODE_RADIUS).attr('fill', d => color(d.grupoPrincipal)).attr('stroke','#fff').attr('stroke-width',1.4).attr('opacity',0.98);
-
-    // texto arriba del nodo
-    node.append('text')
-      .text(d=>d.titulo)
-      .attr('text-anchor','middle')
-      .attr('dy', -NODE_RADIUS - 8)
-      .style('font-size','13px')
-      .style('font-weight','600')
-      .style('fill','#111');
-
-    // Simulación
-    const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(links).id(d=>d.id).distance(160).strength(0.6))
-      .force('charge', d3.forceManyBody().strength(-420))
-      .force('center', d3.forceCenter(width/2,height/2))
-      .force('collision', d3.forceCollide().radius(NODE_RADIUS+8).iterations(2));
-
-    simulation.alpha(1).restart();
-
-    // --- colisiones: reproducir notas cuando nodos se acercan ---
-    let lastCollisionPairs = new Set();
-    let lastCollisionSoundTime = 0;
-    function scanCollisions(){
-      const threshold = NODE_RADIUS * 1.6;
-      const now = performance.now();
-      const newPairs = new Set();
-
-      for (let i=0;i<nodes.length;i++){
-        const a = nodes[i]; if (a.x==null||a.y==null) continue;
-        for (let j=i+1;j<nodes.length;j++){
-          const b = nodes[j]; if (b.x==null||b.y==null) continue;
-          const dx = b.x - a.x; const dy = b.y - a.y; const dist = Math.hypot(dx,dy);
-          if (dist < threshold){
-            const key = `${a.id}-${b.id}`;
-            newPairs.add(key);
-            if (!lastCollisionPairs.has(key) && now - lastCollisionSoundTime > 60){
-              // reproducir ambas notas con pequeño desfase
-              if (initAudio()){
-                playNote(a.freq, 0.25);
-                setTimeout(()=> playNote(b.freq, 0.25), 40);
-              }
-              lastCollisionSoundTime = now;
-            }
-          }
-        }
-      }
-      lastCollisionPairs = newPairs;
-    }
-
-    simulation.on('tick', ()=>{
-      link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
-      node.attr('transform', d=>`translate(${d.x},${d.y})`);
-      // scan collisions continuously so collisions trigger whether dragging or not
-      scanCollisions();
-    });
-
-    // Drag
-    let dragging = false;
-    node.call(d3.drag()
-      .on('start',(event,d)=>{ dragging = true; if(!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; initAudio(); playNote(d.freq,0.35); })
-      .on('drag',(event,d)=>{ d.fx = event.x; d.fy = event.y; scanCollisions(); })
-      .on('end',(event,d)=>{ if(!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; dragging = false; lastCollisionPairs = new Set(); })
-    );
-
-    // Click: play sound then open link
-    function openLink(link){ if (/^https?:\/\//.test(link)) window.open(link, '_blank'); else window.location.href = link; }
-
-    node.on('click', (event,d)=>{
-      event.stopPropagation();
-      const ok = initAudio(); if (ok) playNote(d.freq,0.35);
-      // delay navigation slightly so note can be heard
-      setTimeout(()=> openLink(d.link), 140);
-    });
-
-    // Zoom & pan
-    const zoom = d3.zoom().scaleExtent([0.4,4]).on('zoom', (event)=>{ container.attr('transform', event.transform); });
-    svg.call(zoom).on('dblclick.zoom', null);
-    svg.on('dblclick', ()=>{ svg.transition().duration(700).call(zoom.transform, d3.zoomIdentity.translate(0,0).scale(1)); });
-
-    // Resize
-    window.addEventListener('resize', ()=>{
-      width = window.innerWidth; height = window.innerHeight; svg.attr('viewBox',[0,0,width,height]);
-      simulation.force('center', d3.forceCenter(width/2,height/2));
-      nodes.forEach(n=>{ n.x = Math.max(NODE_RADIUS, Math.min(width-NODE_RADIUS, n.x + (Math.random()-0.5)*40)); n.y = Math.max(NODE_RADIUS, Math.min(height-NODE_RADIUS, n.y + (Math.random()-0.5)*40)); });
-      simulation.alpha(0.6).restart();
-    });
-
-    // Accessibility: keyboard focus + Enter
-    node.attr('tabindex',0).on('keydown', (event,d)=>{ if (event.key === 'Enter' || event.key === ' ') { initAudio(); if (audioCtx) playNote(d.freq,0.35); openLink(d.link); } });
-
-  </script>
 </body>
 </html>
