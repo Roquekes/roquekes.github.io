@@ -15,9 +15,9 @@
             min-height: 100vh;
         }
 
-        /* El "cuadrado" imaginario en el centro */
         nav {
-            width: 450px; /* Ancho fijo para que se note el desplazamiento a la derecha */
+            width: 90%;
+            max-width: 450px;
             display: flex;
             flex-direction: column;
         }
@@ -38,20 +38,18 @@
             font-size: 18px;
         }
 
-        /* Primer bloque: Alineado a la izquierda (por defecto) */
         .proyectos {
             text-align: left;
         }
 
-        /* Segundo bloque: Todo a la derecha e Italic */
         .redes {
             text-align: right;
-            margin-top: 40px; /* Espacio de separación */
+            margin-top: 40px;
         }
 
         .redes a, .redes span {
             font-style: italic;
-            display: block; /* Para que el text-align: right funcione en los links */
+            display: block;
         }
 
         .separador {
