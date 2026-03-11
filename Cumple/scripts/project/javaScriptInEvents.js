@@ -160,6 +160,29 @@ reverbGain.connect(zzfxX.destination);
 
 const scriptsInEvents = {
 
+	async _main_Event72_Act1(runtime, localVars)
+	{
+		const paramArray = localVars.SFX.split(',').map(value => value === '' ? undefined : parseFloat(value));
+		
+		const updateParam = (index, value) => {
+		  if (paramArray[index] !== undefined || value !== 0) {
+		    paramArray[index] = (paramArray[index] || 0) + value;
+		  }
+		};
+		
+		updateParam(14, localVars.modulation);
+		updateParam(15, localVars.bitcrush);
+		updateParam(16, localVars.delay);
+		updateParam(0, localVars.volume);
+		updateParam(1, localVars.randomness);
+		updateParam(2, localVars.frequency);
+		updateParam(5, localVars.decay);
+		
+		//console.log(paramArray.toString());
+		
+		zzfx(...paramArray);
+	},
+
 	async _global_Event6_Act1(runtime, localVars)
 	{
 		localVars.S = encodeURIComponent(localVars.S);
@@ -190,9 +213,11 @@ const content = text.replace(/\[[^\]]+\]|[\s\S]/g, (token) => {
 });
 
 localVars.text = content + (cursorIndex < visibleText.length - 1 ? "[/hide]" : "");
+
+localVars.visibleText = visibleText;
 	},
 
-	async _global_Event22_Act2(runtime, localVars)
+	async _global_Event23_Act2(runtime, localVars)
 	{
 const { text, typewriteProgress, faceSize } = localVars;
 
@@ -226,7 +251,7 @@ const content = text.replace(/\[[^\]]+\]|[\s\S]/g, (token) => {
 localVars.text = content;
 	},
 
-	async _global_Event55_Act2(runtime, localVars)
+	async _global_Event56_Act2(runtime, localVars)
 	{
 /**
  * Wraps the given text with a specified BBCode tag.
@@ -247,7 +272,7 @@ const result = addBBCodeTag(text, tag, value);
 runtime.setReturnValue(result);
 	},
 
-	async _global_Event56_Act2(runtime, localVars)
+	async _global_Event57_Act2(runtime, localVars)
 	{
 /**
  * Matches all occurrences of a specified BBCode tag in the text and returns an array of match results.
@@ -283,55 +308,32 @@ const result = matchBBCode(text, tag, index);
 runtime.setReturnValue(result.content);
 	},
 
-	async _global_Event65_Act2(runtime, localVars)
+	async _global_Event66_Act2(runtime, localVars)
 	{
 		const {text, tag, index} = localVars;
 		const result = matchBBCode(text, tag, index);
 		runtime.setReturnValue(result.content);
 	},
 
-	async _global_Event66_Act2(runtime, localVars)
+	async _global_Event67_Act2(runtime, localVars)
 	{
 		const {text, tag, index, part} = localVars;
 		const result = splitBBCode(text, tag, index, part);
 		runtime.setReturnValue(result);
 	},
 
-	async _global_Event67_Act2(runtime, localVars)
+	async _global_Event68_Act2(runtime, localVars)
 	{
 		const {text, tag} = localVars;
 		const result = tokenCountBBCode(text, tag);
 		runtime.setReturnValue(result);
 	},
 
-	async _global_Event68_Act2(runtime, localVars)
+	async _global_Event69_Act2(runtime, localVars)
 	{
 		const {text, tag, rep, index} = localVars;
 		const result = replaceBBCode(text, tag, rep, index);
 		runtime.setReturnValue(result);
-	},
-
-	async _main_Event72_Act1(runtime, localVars)
-	{
-		const paramArray = localVars.SFX.split(',').map(value => value === '' ? undefined : parseFloat(value));
-		
-		const updateParam = (index, value) => {
-		  if (paramArray[index] !== undefined || value !== 0) {
-		    paramArray[index] = (paramArray[index] || 0) + value;
-		  }
-		};
-		
-		updateParam(14, localVars.modulation);
-		updateParam(15, localVars.bitcrush);
-		updateParam(16, localVars.delay);
-		updateParam(0, localVars.volume);
-		updateParam(1, localVars.randomness);
-		updateParam(2, localVars.frequency);
-		updateParam(5, localVars.decay);
-		
-		//console.log(paramArray.toString());
-		
-		zzfx(...paramArray);
 	}
 };
 
