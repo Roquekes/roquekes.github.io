@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>TODO LO QUE PASÓ MIENTRAS TÚ NO ESTABAS AQUÍ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      margin: 0;
+      background: white;
+      font-family: Arial, sans-serif;
+      color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+      cursor: pointer;
+    }
+
+    #content {
+      max-width: 800px;
+      width: 100%;
+      font-size: clamp(16px, 3vw, 24px);
+      word-break: keep-all;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .day {
+      font-weight: bold;
+      min-height: 2em;
+      opacity: 0;
+      animation: fadeIn 0.6s forwards;
+    }
+
+    .text {
+      margin-top: 20px;
+      min-height: 4em;
+      opacity: 0;
+      animation: fadeIn 0.8s forwards;
+      animation-delay: 1.2s;
+    }
+
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="content"></div>
+
+<script>
+  const screens = [
+    { day: "", text: "TODO LO QUE PASÓ MIENTRAS TÚ NO ESTABAS AQUÍ" },
+
+    { day: "14 DE MARZO de 1998", text: "Nazco yo y se lanza en Europa el videojuego Resident Evil 2 para PlayStation." },
+
+    { day: "15 MARZO de 1998", text: "Suharto (dictador indonesio) formaliza su nuevo gabinete en Yakarta en plena crisis financiera asiática." },
+
+    { day: "16 MARZO de 1998", text: "El Vaticano publica un documento oficial sobre la memoria del Holocausto titulado \"Nosotros recordamos: una reflexión sobre la Shoá\"." },
+
+    { day: "17 MARZO de 1998", text: "Microsoft lanza la versión beta de Windows 98 para pruebas públicas." },
+
+    { day: "18 MARZO de 1998", text: "Se celebra una reunión clave de la OTAN para discutir la expansión hacia Europa del Este." },
+
+    { day: "19 MARZO de 1998", text: "El Parlamento del Reino Unido aprueba legislación relacionada con el proceso de paz en Irlanda del Norte, en el contexto previo al Acuerdo de Viernes Santo." },
+
+    { day: "20 MARZO de 1998", text: "En Japón se lanza oficialmente el videojuego Yoshi's Story para Nintendo 64." },
+
+    { day: "", text: "Menos mal que ya naciste qué semana más aburrida :(" }
+  ];
+
+  let index = 0;
+  const content = document.getElementById("content");
+
+  let audioCtx;
+
+  function playClickSound(i) {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    const minFreq = 300;
+    const maxFreq = 1000;
+    const progress = i / (screens.length - 1);
+    const freq = minFreq + (maxFreq - minFreq) * progress;
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+  }
+
+  function showScreen() {
+    const s = screens[index];
+
+    content.innerHTML = `
+      <div class="day">${s.day}</div>
+      <div class="text">${s.text}</div>
+    `;
+  }
+
+  function nextScreen() {
+    if (index < screens.length - 1) {
+      index++;
+      playClickSound(index);
+      showScreen();
+    }
+  }
+
+  document.body.addEventListener("click", nextScreen);
+  document.body.addEventListener("touchstart", nextScreen);
+
+  showScreen();
+</script>
+
+</body>
+</html>
