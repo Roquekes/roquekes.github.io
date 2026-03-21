@@ -79,6 +79,7 @@
   ];
 
   let index = 0;
+  let canClick = true;
   const content = document.getElementById("content");
 
   let audioCtx;
@@ -116,9 +117,17 @@
       <div class="day">${s.day}</div>
       <div class="text">${s.text}</div>
     `;
+
+    canClick = false;
+
+    setTimeout(() => {
+      canClick = true;
+    }, 2200);
   }
 
   function nextScreen() {
+    if (!canClick) return;
+
     if (index < screens.length - 1) {
       index++;
       playClickSound(index);
