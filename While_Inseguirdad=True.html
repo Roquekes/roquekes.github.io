@@ -59,9 +59,6 @@
 </head>
 <body>
 
-<!-- referencia interna (no mostrada) -->
-<script>const referenceImagePath = "/mnt/data/cambios 3.JPG";</script>
-
 <div id="scroller" aria-label="Poesía interactiva">
   <div class="content">
     <div class="column" id="column" role="list">
@@ -182,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 1000);
 
-  /* ------------------ Modelo (pares) ------------------ */
+  /* ------------------ Modelo ------------------ */
   const pairs = []; // {meNode, noNode, removedMe, removedNo, noIsPlaceholder}
 
   function makeNoPlaceholder(){
@@ -233,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { root: scroller, rootMargin: '600px', threshold: 0 });
   observer.observe(sentinel);
 
-  /* ---------------- inseguridad + eval helper + console B ---------------- */
+  /* ---------------- inseguridad ---------------- */
   let _inseg = true;
   Object.defineProperty(window, 'inseguridad', {
     configurable: true,
@@ -282,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return val;
   };
 
-  /* -------------- Interacción: arrancar pétalos (A+B+C afinados) -------------- */
+  /* -------------- Interacción: arrancar pétalos -------------- */
   function attachPetalHandlers(node, pair, which){
     let dragging=false, startX=0, startY=0, lastMoves=[], pointerConstraint=null, body=null, cloneEl=null, armed=false, detached=false, localGrabX=0;
 
@@ -491,7 +488,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // listo
 }); // DOMContentLoaded
 </script>
 </body>
