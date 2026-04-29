@@ -61,6 +61,7 @@ const CONFIG = {
 
 let c, ctx, bgCanvas, bgCtx;
 let SIM_W, SIM_H, CELL_W, CELL_H;
+let globalOX, globalOY; 
 const dpr = window.devicePixelRatio || 1;
 
 function updateDimensions() {
@@ -70,6 +71,10 @@ function updateDimensions() {
   SIM_H = availableSize;
   CELL_W = SIM_W / (CONFIG.gridW - 1);
   CELL_H = SIM_H / (CONFIG.gridH - 1);
+
+  globalOX = window.innerWidth / 2 - SIM_W / 2;
+  const mobileOffset = window.innerWidth < 650 ? 80 : 0; 
+  globalOY = (window.innerHeight / 2 - SIM_H / 2) - mobileOffset;
 }
 
 class Vec2 {
@@ -121,15 +126,14 @@ class Input {
     this.particles = particles;
     this.mouse = new Vec2();
     this.grabbed = null;
-    ['pointerdown','pointerup','pointermove'].forEach(ev => document.addEventListener(ev, this[ev].bind(this)));
+    ['pointerdown','pointerup','pointermove'].forEach(ev => {
+      document.addEventListener(ev, this[ev].bind(this), { passive: false });
+    });
   }
   getMouse(e) {
-    const mobileOffset = window.innerWidth < 650 ? 50 : 0;
-    const currentOX = window.innerWidth / 2 - SIM_W / 2;
-    const currentOY = (window.innerHeight / 2 - SIM_H / 2) - mobileOffset;
     return {
-      x: e.clientX - currentOX,
-      y: e.clientY - currentOY
+      x: e.clientX - globalOX,
+      y: e.clientY - globalOY
     };
   }
   pointerdown(e) {
@@ -137,7 +141,9 @@ class Input {
     this.mouse.reset(m.x, m.y);
     for (const p of this.particles) {
       if (p.pinned) continue;
-      if (this.mouse.subtractNew(p.pos).lengthSquared < (CELL_W * CELL_W * 4)) {
+      const dx = this.mouse.x - p.pos.x;
+      const dy = this.mouse.y - p.pos.y;
+      if ((dx*dx + dy*dy) < (CELL_W * CELL_W * 6)) {
         this.grabbed = p; p._p = p.pinned; p.pinned = true; return;
       }
     }
@@ -247,9 +253,7 @@ function main() {
   ctx = c.getContext('2d');
   bgCtx.scale(dpr, dpr);
   ctx.scale(dpr, dpr);
-  const OX = window.innerWidth / 2 - SIM_W / 2;
-  const mobileOffset = window.innerWidth < 650 ? 50 : 0;
-  const OY = (window.innerHeight / 2 - SIM_H / 2) - mobileOffset;
+
   const centerX = SIM_W / 2;
   const centerY = SIM_H / 2;
   const gapPx = SIM_W * GAP_PIXELS_RATIO;
@@ -289,7 +293,7 @@ function main() {
       const qCols = isLeft ? colsLeft.length : colsRight.length;
       const ch = bgQuadrants[key][localRow * qCols + localCol];
       if (ch && ch !== ' ' && bgCache[ch]) {
-        bgCtx.drawImage(bgCache[ch], OX + posX - charSize/2, OY + posY - charSize/2, charSize, charSize);
+        bgCtx.drawImage(bgCache[ch], globalOX + posX - charSize/2, globalOY + posY - charSize/2, charSize, charSize);
       }
     }
   }
@@ -330,7 +334,7 @@ function main() {
         const a = Math.atan2(dy, dx) - Math.PI / 2;
         cos = Math.cos(a); sin = Math.sin(a);
       }
-      ctx.setTransform(cos * dpr, sin * dpr, -sin * dpr, cos * dpr, (p.pos.x + OX) * dpr, (p.pos.y + OY) * dpr);
+      ctx.setTransform(cos * dpr, sin * dpr, -sin * dpr, cos * dpr, (p.pos.x + globalOX) * dpr, (p.pos.y + globalOY) * dpr);
       ctx.drawImage(curtainCache[p.char], -charSize/2, -charSize/2, charSize, charSize);
     });
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
