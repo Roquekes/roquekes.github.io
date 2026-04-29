@@ -68,8 +68,8 @@ let SIM_W, SIM_H, CELL_W, CELL_H;
 const dpr = window.devicePixelRatio || 1;
 
 function updateDimensions() {
-  const margin = window.innerWidth < 600 ? CONFIG.mobileMargin : 80;
-  const availableSize = Math.min(window.innerWidth - margin, window.innerHeight - margin, 550);
+  const margin = window.innerWidth < 650 ? CONFIG.mobileMargin : 100;
+  const availableSize = Math.min(window.innerWidth - margin, window.innerHeight - margin, 600);
   SIM_W = availableSize;
   SIM_H = availableSize;
   CELL_W = SIM_W / (CONFIG.gridW - 1);
