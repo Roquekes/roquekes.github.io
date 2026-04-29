@@ -34,9 +34,6 @@
 <div id="container"></div>
 
 <script>
-// ============================================================
-//  ✏️  TEXTOS PERSONALIZADOS
-// ============================================================
 const CURTAIN_TEXT = `Hace unos meses acompañé a Sabela a una tienda de telas al peso. Sus cortinas ya eran más parches que cortinas y el apaño con trece pinzas que hice en uno de los agujeros no servía de gran cosa más allá del particular interés estético. Ella quería hacer unas nuevas. Desde que le conozco ha ido cuidando y moldeando su casa en medida de sus posibilidades. Haciéndola hogar. Cualquier persona que va lo nota. Sin que ella haga nada, que lo hace, el espacio te arropa y te da la bienvenida. Una tela a cuadros verde oscuro es la escogida. Encaja con los tonos terrosos que invaden la casa como las plantas que pueblan cada esquina. Como los distintos muebles de madera con barniz oscuro; algunos heredados, otros encontrados, otros construidos. Me sigue pasando el quedarme mirando. Los cuadros, lámparas, libros, discos los “trinkets”; Algunos heredados, otros encontrados, otros construidos. Me sigo quedando mirando porque para mi son gestos de cuidado y de cariño a los que no termino de acostumbrarme. Me dan esperanza y envidia. Cómo arreglar hasta que toca dejar ir. Que bonito y que triste. Pienso en las cosas de este lugar que con el tiempo he aceptado como propias que nunca pensé que serían parte de mi. Fuera sale el sol. Abro las cortinas.
 `;
 
@@ -64,7 +61,6 @@ const CONFIG = {
 
 let c, ctx, bgCanvas, bgCtx;
 let SIM_W, SIM_H, CELL_W, CELL_H;
-// Factor de nitidez para móviles-------------------------------------------------
 const dpr = window.devicePixelRatio || 1;
 
 function updateDimensions() {
@@ -128,9 +124,12 @@ class Input {
     ['pointerdown','pointerup','pointermove'].forEach(ev => document.addEventListener(ev, this[ev].bind(this)));
   }
   getMouse(e) {
+    const mobileOffset = window.innerWidth < 650 ? 50 : 0;
+    const currentOX = window.innerWidth / 2 - SIM_W / 2;
+    const currentOY = (window.innerHeight / 2 - SIM_H / 2) - mobileOffset;
     return {
-      x: e.clientX - window.innerWidth / 2 + SIM_W / 2,
-      y: e.clientY - window.innerHeight / 2 + SIM_H / 2
+      x: e.clientX - currentOX,
+      y: e.clientY - currentOY
     };
   }
   pointerdown(e) {
@@ -163,67 +162,53 @@ class Input {
 
 function buildWrappedText(text, cols, rows) {
   const result = new Array(cols * rows).fill(' ');
-  // Trabajamos con una copia mutable para poder trocar palabras largas
   const words = text.replace(/\s+/g, ' ').trim().split(' ');
-  let wi = 0; // índice circular sobre words
-
+  let wi = 0;
   const lines = [];
   while (lines.length < rows) {
     const lineTokens = [];
-    let usedChars = 0; // suma de longitudes de tokens en esta línea
-
+    let usedChars = 0;
     while (true) {
       const w = words[wi % words.length];
-
       if (w.length >= cols) {
-        if (lineTokens.length > 0) break; // cerrar línea antes
+        if (lineTokens.length > 0) break;
         const chunk = w.slice(0, cols - 1) + '-';
         const rest  = w.slice(cols - 1);
         lineTokens.push(chunk);
         usedChars = cols;
-        // Reemplazar la palabra por su resto para la próxima iteración
         words.splice(wi % words.length, 1, ...(rest.length ? [rest] : []));
         break;
       }
-
       const needed = usedChars === 0 ? w.length : usedChars + 1 + w.length;
-      if (needed > cols) break; // no cabe: cerrar línea
-
+      if (needed > cols) break;
       lineTokens.push(w);
       usedChars = needed;
       wi++;
-      if (usedChars === cols) break; // relleno exacto
+      if (usedChars === cols) break;
     }
-
     lines.push({ tokens: lineTokens, used: usedChars });
   }
-
   for (let row = 0; row < lines.length; row++) {
     const { tokens, used } = lines[row];
     if (tokens.length === 0) continue;
-
     let rowStr;
     if (tokens.length === 1) {
-      // Una sola palabra: sin justificación (alinear izquierda)
       rowStr = tokens[0].padEnd(cols, ' ');
     } else {
       const gaps  = tokens.length - 1;
-      const spare = cols - used;           // espacio sobrante a repartir
-      const base  = Math.floor(spare / gaps) + 1; // espacio mínimo entre palabras
-      const extra = spare % gaps;          // primeros `extra` huecos llevan +1 espacio
-
+      const spare = cols - used;
+      const base  = Math.floor(spare / gaps) + 1;
+      const extra = spare % gaps;
       rowStr = '';
       for (let ti = 0; ti < tokens.length; ti++) {
         rowStr += tokens[ti];
         if (ti < gaps) rowStr += ' '.repeat(base + (ti < extra ? 1 : 0));
       }
     }
-
     for (let col = 0; col < cols; col++) {
       result[row * cols + col] = rowStr[col] ?? ' ';
     }
   }
-
   return result;
 }
 
@@ -231,19 +216,16 @@ function main() {
   updateDimensions();
   const container = document.getElementById('container');
   container.innerHTML = '';
-
   const fontSize = Math.floor(CELL_W * CONFIG.fontSizeMult);
   const charSize = Math.ceil(fontSize * 1.5);
-
   const createCache = (text, color) => {
     const cache = {};
     for (const ch of new Set(text)) {
       if (ch === ' ') continue;
       const o = document.createElement('canvas');
-      // Multiplicamos el tamaño interno por el DPR para nitidez
       o.width = o.height = charSize * dpr;
       const x = o.getContext('2d');
-      x.scale(dpr, dpr); // Escalamos el contexto
+      x.scale(dpr, dpr);
       x.font = `bold ${fontSize}px Arial, sans-serif`;
       x.textAlign = 'center'; x.textBaseline = 'middle';
       x.fillStyle = color;
@@ -252,32 +234,25 @@ function main() {
     }
     return cache;
   };
-
   const curtainCache = createCache(CURTAIN_TEXT, '#333');
   const bgCache = createCache(BG_TL + BG_TR + BG_BL + BG_BR, '#444');
-
   bgCanvas = document.createElement('canvas');
   c = document.createElement('canvas');
   [bgCanvas, c].forEach(canv => {
-    // Ajuste de resolución física vs visual
     canv.width = window.innerWidth * dpr;
     canv.height = window.innerHeight * dpr;
     container.appendChild(canv);
   });
-  
   bgCtx = bgCanvas.getContext('2d');
   ctx = c.getContext('2d');
-
   bgCtx.scale(dpr, dpr);
   ctx.scale(dpr, dpr);
-
   const OX = window.innerWidth / 2 - SIM_W / 2;
-  const OY = window.innerHeight / 2 - SIM_H / 2;
-
+  const mobileOffset = window.innerWidth < 650 ? 50 : 0;
+  const OY = (window.innerHeight / 2 - SIM_H / 2) - mobileOffset;
   const centerX = SIM_W / 2;
   const centerY = SIM_H / 2;
   const gapPx = SIM_W * GAP_PIXELS_RATIO;
-
   const colsLeft = [], colsRight = [], rowsTop = [], rowsBot = [];
   for (let i = 0; i < CONFIG.gridW; i++) {
     const posX = i * CELL_W;
@@ -289,15 +264,12 @@ function main() {
     if (posY < centerY - gapPx)      rowsTop.push(j);
     else if (posY > centerY + gapPx) rowsBot.push(j);
   }
-
-  // Texto justificado para cada cuadrante
   const bgQuadrants = {
     tl: buildWrappedText(BG_TL, colsLeft.length,  rowsTop.length),
     tr: buildWrappedText(BG_TR, colsRight.length, rowsTop.length),
     bl: buildWrappedText(BG_BL, colsLeft.length,  rowsBot.length),
     br: buildWrappedText(BG_BR, colsRight.length, rowsBot.length),
   };
-
   bgCtx.globalAlpha = BG_ALPHA;
   for (let j = 0; j < CONFIG.gridH; j++) {
     const posY = j * CELL_H;
@@ -306,7 +278,6 @@ function main() {
     const rowArr = isTop ? rowsTop : rowsBot;
     const localRow = rowArr.indexOf(j);
     if (localRow === -1) continue;
-
     for (let i = 0; i < CONFIG.gridW; i++) {
       const posX = i * CELL_W;
       if (Math.abs(posX - centerX) < gapPx) continue;
@@ -314,19 +285,15 @@ function main() {
       const colArr = isLeft ? colsLeft : colsRight;
       const localCol = colArr.indexOf(i);
       if (localCol === -1) continue;
-
       const key = (isTop ? 't' : 'b') + (isLeft ? 'l' : 'r');
       const qCols = isLeft ? colsLeft.length : colsRight.length;
       const ch = bgQuadrants[key][localRow * qCols + localCol];
-
       if (ch && ch !== ' ' && bgCache[ch]) {
         bgCtx.drawImage(bgCache[ch], OX + posX - charSize/2, OY + posY - charSize/2, charSize, charSize);
       }
     }
   }
-
   const wrappedChars = buildWrappedText(CURTAIN_TEXT, CONFIG.gridW, CONFIG.gridH);
-
   const particles = [];
   const constraints = [];
   for (let j = 0; j < CONFIG.gridH; j++) {
@@ -346,18 +313,14 @@ function main() {
       if (i > 0) constraints.push(new Constraint({ p1: particles[j * CONFIG.gridW + (i-1)], p2: p, length: CELL_W, minF: 0.6, maxF: 4 }));
     }
   }
-
   new Input(particles);
-
   let last = 0;
   function loop(now) {
     const dt = Math.min(now - last, 32) || 16;
     last = now;
-    // Limpiamos usando las coordenadas lógicas (el scale se encarga del resto)
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     particles.forEach(p => p.update(dt/16));
     for (let i = 0; i < CONFIG.iterationsPerFrame; i++) constraints.forEach(con => con.solve());
-    
     particles.forEach(p => {
       if (p.char === ' ' || !curtainCache[p.char]) return;
       let cos = 1, sin = 0;
@@ -375,7 +338,6 @@ function main() {
   }
   requestAnimationFrame(loop);
 }
-
 setTimeout(main, 500);
 window.addEventListener('resize', () => location.reload());
 </script>
