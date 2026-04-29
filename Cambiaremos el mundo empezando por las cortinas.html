@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Cambiaremos el mundo empezando por las cortinas</title>
 <style>
   body {
@@ -10,16 +10,23 @@
     margin: 0;
     display: flex;
     min-height: 100vh;
+    min-height: 100svh;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     font-family: Arial, sans-serif;
+    position: fixed;
+    width: 100%;
   }
   #container {
     position: relative;
     touch-action: none;
     width: 100vw;
     height: 100vh;
+    height: 100svh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   canvas {
     position: absolute;
@@ -39,7 +46,7 @@ const CURTAIN_TEXT = `Hace unos meses acompañé a Sabela a una tienda de telas 
 
 const BG_TL = `En casa de mi madre, donde me crié, todo eran ventanas. Hace tiempo ya que la humedad se comió las cortinas. Ahora el sol tiene carta blanca y desgasta el color de los lomos de los libros, de los cuadros y madura la fruta y seca el pan y la piel de mi mamá.`;
 const BG_TR = `En mi primer piso no teníamos ventanas (Legalmente no era un piso). Solo una entrada de luz desde las puertas verde oscuro de la terraza. Nunca pensé que se podría echar de menos tener ventanas. Ahí aprendí a la fuerza, junto a mis plantas, que la luz es vida.`;
-const BG_BL = `En mi segundo piso teníamos ventanas y vistas al horizonte por un lado y unos tejados llenos de musgo donde veíamos criar a las gaviotas en el otro. En los casi dos años que viví allí no llegamos a colgar unas cortinas en aquellos tubos tan oxidados.`;
+const BG_BL = `En mi segundo piso teníamos ventanas con vistas al horizonte por un lado y unos tejados llenos de musgo donde veíamos criar a las gaviotas en el otro. En los casi dos años que viví allí no llegamos a colgar unas cortinas en aquellos tubos tan oxidados.`;
 const BG_BR = `Donde vivo ahora no hay cortinas. Ni las habrá. Estoy de paso. He tratado de hacer esto un hogar pero es difícil sabiendo que en unos meses ya me habré ido. No puedo pagarlo. Por primera vez tengo mi espacio y viene con mucha más soledad de la que soy capaz de gestionar.`;
 
 const BG_ALPHA = 0.22;
@@ -131,9 +138,10 @@ class Input {
     });
   }
   getMouse(e) {
+    const rect = c.getBoundingClientRect();
     return {
-      x: e.clientX - globalOX,
-      y: e.clientY - globalOY
+      x: (e.clientX - rect.left) - globalOX,
+      y: (e.clientY - rect.top) - globalOY
     };
   }
   pointerdown(e) {
@@ -143,7 +151,7 @@ class Input {
       if (p.pinned) continue;
       const dx = this.mouse.x - p.pos.x;
       const dy = this.mouse.y - p.pos.y;
-      if ((dx*dx + dy*dy) < (CELL_W * CELL_W * 6)) {
+      if ((dx*dx + dy*dy) < (CELL_W * CELL_W * 10)) {
         this.grabbed = p; p._p = p.pinned; p.pinned = true; return;
       }
     }
@@ -343,7 +351,9 @@ function main() {
   requestAnimationFrame(loop);
 }
 setTimeout(main, 500);
-window.addEventListener('resize', () => location.reload());
+window.addEventListener('resize', () => {
+    if (Math.abs(window.innerWidth - SIM_W) > 50) location.reload();
+});
 </script>
 </body>
 </html>
