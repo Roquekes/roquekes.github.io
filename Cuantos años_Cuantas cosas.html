@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuántos años.Cuántas cosas</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #fff;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Evita selección de texto en toda la página */
+  user-select: none;
+  -webkit-user-select: none;
+}
+svg { display: block; }
+text { font-family: Arial, sans-serif; fill: #000; }
+.obj-word { cursor: grab; }
+.obj-word:active { cursor: grabbing; }
+#ghost {
+  position: fixed;
+  pointer-events: none;
+  font-family: Arial, sans-serif;
+  color: #000;
+  display: none;
+  z-index: 100;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<svg id="svg"></svg>
+<div id="ghost"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════╗
+// ║                 PARÁMETROS                ║
+// ╠══════════════════════════════════════════════════════════════╣
+
+// ── Tamaño del bloque ─────────────────────────────────────────
+const ESCALA_WEB    = 0.50;  // escritorio: 0.3 pequeño · 1.0 llena pantalla
+const ESCALA_MOVIL  = 0.95;  // móvil:      0.3 pequeño · 1.0 llena pantalla
+
+// ── Tamaño del texto (unidades SVG, igual en todos los dispositivos) ──
+const TEXTO_TAMANO  = 22;
+
+// ── Opacidad del texto del relato (0.0 invisible · 1.0 negro) ──
+//    Bájala para ver solo los objetos y calibrar densidad
+const OPACIDAD_RELATO = 1.0;
+
+// ── Modo debug: muestra estadísticas en pantalla ──────────────
+const DEBUG = false;
+
+// ── Sonido al COGER ──────────────────────────────────────────
+const SONIDO_COGER = {
+  tipo:       'sine',   // 'sine' 'square' 'triangle' 'sawtooth'
+  frecInicio: 320,      // Hz al empezar
+  frecFin:    480,      // Hz al terminar
+  duracion:   0.12,     // segundos
+  volumen:    0.18,     // 0.0 silencio · 1.0 máximo
+};
+
+// ── Sonido al SOLTAR ──────────────────────────────────────────
+const SONIDO_SOLTAR = {
+  tipo:       'sine',
+  frecInicio: 280,
+  frecFin:    160,
+  duracion:   0.18,
+  volumen:    0.18,
+};
+
+// ── Fade out al eliminar (segundos) ──────────────────────────
+const FADE_DURACION = 0.35;   // duración del fade out en segundos
+
+// ── Distancia para eliminar (en unidades SVG) ─────────────────
+//    Cuánto hay que alejar la palabra del borde para que desaparezca.
+//    0 = justo al salir del borde · 60 = margen generoso
+const ZONA_ESCAPE = 30;
+
+// ── Densidad de objetos ───────────────────────────────────────
+const OBJETO_CADA_N = 5;      // insertar 1 objeto cada N palabras del relato
+
+// ╚══════════════════════════════════════════════════════════════╝
+
+
+// ── Datos fijos ───────────────────────────────────────────────────────────────
+const SVG_W = 1129.3, SVG_H = 787.1;
+const POLY_PTS = [
+  [618.2,0.5],[618.2,71.8],[643.8,71.8],[643.8,96.5],[710.9,96.5],[710.9,49.7],
+  [1072.2,49.7],[1072.2,393.5],[1128.8,393.5],[1128.8,599.2],[1035.1,654],
+  [778.1,654],[743.6,615.1],[743.6,357.2],[714.5,357.2],[714.5,305.9],
+  [390.2,305.9],[390.2,526.8],[407.9,651.3],[314.3,786.5],[238.5,764.5],
+  [87.5,764.5],[87.5,418.5],[0.5,418.5],[0.5,0.5]
+];
+
+const RELATO = `Cuando alguna de las cosas que dijimos que tirase se le da uso se reafirma: “¿Ves?” dice. Si fuese inmortal probablemente tendría razón y a ver quien le decía algo…Que jaleo. Junto a todo eso que sobra una etiqueta en un cofre que pone “Corales y Caracolas”. Cientos de piedras y conchas traídas de distintos lugares apliadas en el jardín, en los alféizar, en las mesas, en las estanterías. Ubicuas. La nevera llena de imanes de todos los museos que visitó. Decenas de libros que no sé si se habrá leído. Y fotos de toda una vida que, supuestamente, tuvo antes de que existiéramos. De cuando no tenía que cuidarnos. O de cuando sí pero que ni yo ni mis hermanos recordamos. Todo eso también eres tú. Todo eso sí guárdalo mamá. Ya lo tiro yo cuando no estés.`;
+
+// Lista completa de objetos — añade todos los que quieras
+const TODOS_LOS_OBJETOS = [
+ "botes","espiralizadora","yogurtera","cargadores","heladera","cables","vhs","bolsas","tazas","parrilla",
+  "manteles","cajas","estuches","catálogos","sobres","folios","bolígrafos","tapas","gomas","cubiteras",
+  "túpers","exprimidor","botellas","cartas","velas","tarros","sellos","copas","sillas","telas",
+  "bombillas","hdmi","cestas","tickets","pinzas","fuelle","zapatos","espátulas","cinta","tornillos",
+  "especias","tijeras","enciclopedias","retales","botones","mantas","revistas","publicidad","grapas","cáscaras",
+  "cartón","palillos","pajitas","agujas","macetas","bicis","infusiones","fundas","carpetas","fruteros",
+  "bolsos","cepillos","jabones","detergentes","dvds","notas","sartenes","coladores","bandejas",
+  "juguetes","canicas","cordones","tiritas","medicamentos","azucareros","fuentes","salvamanteles","ralladores","plancha",
+  "pilas","recibos","toallas","abrigos","sombreros","palos","piñas","esculturas","figuritas","esterillas",
+  "flautas","móviles","alambres","jarrones","varilla","termos","cortinas","relojes","calendarios","mandos","marcos"
+];
+
+// Cuántos objetos mostrar por recarga (se eligen al azar de la lista)
+const OBJETOS_POR_RONDA = 83;
+
+const svgEl = document.getElementById('svg');
+const ghost  = document.getElementById('ghost');
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(cfg) {
+  const ctx  = getAudio();
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = cfg.tipo;
+  osc.frequency.setValueAtTime(cfg.frecInicio, ctx.currentTime);
+  osc.frequency.linearRampToValueAtTime(cfg.frecFin, ctx.currentTime + cfg.duracion);
+  gain.gain.setValueAtTime(cfg.volumen, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + cfg.duracion);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + cfg.duracion);
+}
+
+// ── Geometry ──────────────────────────────────────────────────────────────────
+function scanLine(y, pts) {
+  const xs = [];
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi <= y && yj > y) || (yj <= y && yi > y))
+      xs.push(xi + (y - yi) / (yj - yi) * (xj - xi));
+  }
+  return xs.sort((a, b) => a - b);
+}
+
+function pip(px, py, pts) {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi)
+      inside = !inside;
+  }
+  return inside;
+}
+
+// ── SVG text measurement ──────────────────────────────────────────────────────
+let measureEl = null;
+function measureWord(word, fs) {
+  if (!measureEl) {
+    measureEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    measureEl.setAttribute('visibility', 'hidden');
+    svgEl.appendChild(measureEl);
+  }
+  measureEl.style.fontSize   = fs + 'px';
+  measureEl.style.fontFamily = 'Arial, sans-serif';
+  measureEl.textContent      = word;
+  return measureEl.getComputedTextLength();
+}
+
+// ── Word pool ─────────────────────────────────────────────────────────────────
+//
+// LÓGICA:
+//   1. El RELATO aparece íntegro una vez, en orden.
+//      Los OBJETOS (sin repetir ninguno) se insertan en posiciones
+//      aleatorias dentro de ese primer bloque. Cada recarga cambia
+//      donde aparecen los objetos, pero siempre son los mismos y
+//      el relato siempre esta completo.
+//   2. El resto de la silueta se rellena con el relato repitiendose,
+//      sin objetos.
+//
+
+// ── Máximo de objetos consecutivos permitidos ────────────────
+const OBJETOS_MAX_SEGUIDOS = 3;
+
+// ── Construye el pool de palabras ─────────────────────────────
+//
+// LÓGICA:
+//   1. Se eligen OBJETOS_POR_RONDA objetos al azar de TODOS_LOS_OBJETOS.
+//   2. Se mezclan con el relato íntegro respetando OBJETOS_MAX_SEGUIDOS.
+//   3. El pool resultante es exactamente relato + objetos elegidos.
+//      NO se rellena con texto extra — el render para cuando acaba el pool.
+//      Si la silueta es más grande que el texto, quedará espacio vacío abajo
+//      (señal de que puedes bajar TEXTO_TAMANO o subir ESCALA).
+//
+function buildPool() {
+  const story = RELATO.split(/\s+/).filter(Boolean);
+
+  // 1. Elegir objetos al azar sin repetir
+  const shuffledAll = [...TODOS_LOS_OBJETOS].sort(() => Math.random() - 0.5);
+  // Deduplicar por si la lista tiene repetidos
+  const seen = new Set();
+  const OBJETOS = [];
+  for (const o of shuffledAll) {
+    if (!seen.has(o)) { seen.add(o); OBJETOS.push(o); }
+    if (OBJETOS.length >= OBJETOS_POR_RONDA) break;
+  }
+
+  // 2. Empezamos con el relato íntegro
+  const pool = story.map(t => ({ text: t, type: 'story' }));
+
+  // 3. Insertar cada objeto respetando OBJETOS_MAX_SEGUIDOS
+  for (const obj of OBJETOS) {
+    let inserted = false;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const pos = Math.floor(Math.random() * (pool.length + 1));
+      let streak = 0;
+      let i = pos - 1;
+      while (i >= 0 && pool[i].type === 'obj') { streak++; i--; }
+      let j = pos;
+      while (j < pool.length && pool[j].type === 'obj') { streak++; j++; }
+      if (streak < OBJETOS_MAX_SEGUIDOS) {
+        pool.splice(pos, 0, { text: obj, type: 'obj' });
+        inserted = true;
+        break;
+      }
+    }
+    if (!inserted) {
+      // fallback: insertar después de la primera palabra de relato
+      const fallback = pool.findIndex(w => w.type === 'story');
+      pool.splice(fallback + 1, 0, { text: obj, type: 'obj' });
+    }
+  }
+
+  return pool;
+}
+
+// ── ViewBox según dispositivo ─────────────────────────────────────────────────
+function getViewBox() {
+  const isMobile = window.innerWidth < window.innerHeight;
+  const escala   = isMobile ? ESCALA_MOVIL : ESCALA_WEB;
+  const pad      = Math.round(SVG_W * (1 / escala - 1) * 0.5);
+  return { x: -pad, y: -pad, w: SVG_W + pad * 2, h: SVG_H + pad * 2 };
+}
+
+// ── Build ─────────────────────────────────────────────────────────────────────
+let currentVB;
+
+function build() {
+  currentVB = getViewBox();
+  svgEl.setAttribute('viewBox', `${currentVB.x} ${currentVB.y} ${currentVB.w} ${currentVB.h}`);
+  svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svgEl.style.width  = '100vw';
+  svgEl.style.height = '100vh';
+
+  const FS    = TEXTO_TAMANO;
+  const LH    = FS * 1.6;
+  const PAD   = FS * 0.3;
+  const SPACE = measureWord('a b', FS) - measureWord('ab', FS);
+  const pts   = POLY_PTS;
+  const ys    = pts.map(p => p[1]);
+  const minY  = Math.min(...ys);
+  const maxY  = Math.max(...ys);
+
+  svgEl.innerHTML = '';
+  measureEl = null;
+
+  const pool = buildPool();
+  let wi = 0, id = 0;
+
+  for (let y = minY + LH; y < maxY && wi < pool.length; y += LH) {
+    const edges = scanLine(y - FS * 0.4, pts);
+    if (edges.length < 2) continue;
+
+    for (let ei = 0; ei + 1 < edges.length; ei += 2) {
+      const lx = edges[ei] + PAD;
+      const rx = edges[ei + 1] - PAD;
+      if (rx - lx < FS * 3) continue;
+
+      const line = [];
+      let lineW = 0;
+      while (wi < pool.length) {
+        const w      = pool[wi];
+        const ww     = measureWord(w.text, FS);
+        const needed = line.length === 0 ? ww : ww + SPACE;
+        if (lineW + needed > rx - lx) break;
+        line.push({ ...w, ww, id: id++ });
+        lineW += needed;
+        wi++;
+      }
+      if (line.length === 0) continue;
+
+      const gaps     = line.length - 1;
+      const textW    = line.reduce((s, w) => s + w.ww, 0);
+      const isLast   = wi >= pool.length || y + LH >= maxY;
+      const extraGap = gaps > 0 && !isLast
+        ? (rx - lx - textW - SPACE * gaps) / gaps : 0;
+
+      let cx = lx;
+      for (let i = 0; i < line.length; i++) {
+        const w  = line[i];
+        const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        el.setAttribute('x', cx.toFixed(2));
+        el.setAttribute('y', y.toFixed(2));
+        el.style.fontSize   = FS + 'px';
+        el.style.fontFamily = 'Arial, sans-serif';
+        el.style.fill       = '#000';
+        if (w.type === 'story') el.style.opacity = OPACIDAD_RELATO;
+        el.textContent      = w.text;
+        if (w.type === 'obj') {
+          el.classList.add('obj-word');
+          el.dataset.id = w.id;
+        }
+        svgEl.appendChild(el);
+        cx += w.ww + SPACE + (i < gaps ? extraGap : 0);
+      }
+    }
+  }
+
+  // Debug info
+  if (DEBUG) showDebug(pool, id);
+  attachDrag();
+}
+
+function showDebug(pool, totalTokens) {
+  document.getElementById('debug-panel')?.remove();
+  const story      = RELATO.split(/\s+/).filter(Boolean);
+  const storyCount   = story.length;
+  const rendered     = totalTokens;
+  const objsInPool   = pool.filter(w => w.type === 'obj').length;
+  const storyInPool  = pool.filter(w => w.type === 'story').length;
+  const poolTotal    = pool.length;
+  const pctRendered  = Math.round(rendered / poolTotal * 100);
+
+  const panel = document.createElement('div');
+  panel.id = 'debug-panel';
+  panel.style.cssText = [
+    'position:fixed', 'top:16px', 'left:16px',
+    'background:rgba(255,255,0,0.85)', 'padding:10px 14px',
+    'font:12px/1.7 monospace', 'color:#000',
+    'border:1px solid #aaa', 'border-radius:4px',
+    'pointer-events:none', 'z-index:999', 'white-space:nowrap'
+  ].join(';');
+  panel.innerHTML = [
+    `<b>DEBUG</b>`,
+    `Palabras relato:     <b>${storyCount}</b>`,
+    `Objetos esta ronda:  <b>${objsInPool} / ${OBJETOS_POR_RONDA}</b>`,
+    `Pool total:          <b>${poolTotal}</b>`,
+    `Renderizado:         <b>${rendered} (${pctRendered}%)</b>`,
+    rendered < poolTotal
+      ? `<span style="color:red">⚠ texto incompleto — reduce fuente o escala</span>`
+      : `<span style="color:green">✓ todo el texto cabe</span>`,
+    `Opacidad relato:     <b>${OPACIDAD_RELATO}</b>`,
+    `Fuente:              <b>${TEXTO_TAMANO}px SVG</b>`,
+  ].join('<br>');
+  document.body.appendChild(panel);
+}
+
+// Reduce el polígono hacia su centro por `margin` unidades SVG.
+// Esto hace que la detección de "fuera" sea inmediata al cruzar el borde.
+function shrinkPoly(pts, margin) {
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+  const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  return pts.map(([x, y]) => {
+    const dx = x - cx, dy = y - cy;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    return [x - dx / len * margin, y - dy / len * margin];
+  });
+}
+
+function toSVGCoords(clientX, clientY) {
+  const rect = svgEl.getBoundingClientRect();
+  return [
+    (clientX - rect.left) / rect.width  * currentVB.w + currentVB.x,
+    (clientY - rect.top)  / rect.height * currentVB.h + currentVB.y
+  ];
+}
+
+function attachDrag() {
+  let active = null;
+
+  function startDrag(el, x, y) {
+    active = el;
+    el.style.visibility  = 'hidden';
+    ghost.style.fontSize = el.style.fontSize;
+    ghost.style.opacity  = '1';
+    ghost.style.transition = 'none';
+    ghost.textContent    = el.textContent;
+    ghost.style.display  = 'block';
+    playTone(SONIDO_COGER);
+    moveGhost(x, y);
+  }
+
+  function moveGhost(x, y) {
+    ghost.style.left = (x - ghost.offsetWidth / 2) + 'px';
+    ghost.style.top  = (y - parseFloat(ghost.style.fontSize || TEXTO_TAMANO) * 0.8) + 'px';
+  }
+
+  function endDrag(clientX, clientY) {
+    if (!active) return;
+    const [sx, sy] = toSVGCoords(clientX, clientY);
+    // Usar polígono reducido por ZONA_ESCAPE: la palabra se elimina
+    // en cuanto cruza el borde, no al alejarse mucho
+    const inside   = pip(sx, sy, shrinkPoly(POLY_PTS, ZONA_ESCAPE));
+
+    if (inside) {
+      active.style.visibility = 'visible';
+      ghost.style.display     = 'none';
+    } else {
+      playTone(SONIDO_SOLTAR);
+      const origToRemove = active;
+      // Fade out
+      ghost.style.transition = `opacity ${FADE_DURACION}s ease`;
+      ghost.style.opacity    = '0';
+      setTimeout(() => {
+        origToRemove.remove();
+        ghost.style.display    = 'none';
+        ghost.style.opacity    = '1';
+        ghost.style.transition = 'none';
+      }, FADE_DURACION * 1000);
+    }
+
+    active = null;
+  }
+
+  // Previene selección de texto al hacer click
+  svgEl.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const el = e.target.closest('.obj-word');
+    if (el) startDrag(el, e.clientX, e.clientY);
+  });
+  document.addEventListener('mousemove', e => { if (active) moveGhost(e.clientX, e.clientY); });
+  document.addEventListener('mouseup',   e => endDrag(e.clientX, e.clientY));
+
+  svgEl.addEventListener('touchstart', e => {
+    const el = e.target.closest('.obj-word');
+    if (el) { e.preventDefault(); startDrag(el, e.touches[0].clientX, e.touches[0].clientY); }
+  }, { passive: false });
+  document.addEventListener('touchmove', e => {
+    if (active) { e.preventDefault(); moveGhost(e.touches[0].clientX, e.touches[0].clientY); }
+  }, { passive: false });
+  document.addEventListener('touchend', e => {
+    endDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+  });
+}
+
+build();
+</script>
+</body>
+</html>
