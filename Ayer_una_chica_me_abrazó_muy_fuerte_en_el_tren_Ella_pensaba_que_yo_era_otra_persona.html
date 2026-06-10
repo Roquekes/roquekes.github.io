@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Ayer una chica me abrazó muy fuerte en el tren. Ella pensaba que yo era otra persona</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -27,7 +28,7 @@ body{background:#fff;overflow:hidden;width:100vw;height:100vh}
 
 <div id="menu">
   <div id="menu-header" onclick="toggleMenu()">
-    <span>⚗ Petri Controles</span>
+    <span>⚗ Petri Controls</span>
     <span id="menu-toggle">▲</span>
   </div>
   <div id="menu-body">
@@ -92,12 +93,12 @@ body{background:#fff;overflow:hidden;width:100vw;height:100vh}
 
 <script>
 // ═══════════════════════════════════════════════════════════
-// CONFIGURACIÓN — editar aquí para ajustishos
+// CONFIGURACIÓN — editar aquí para producción
 // ═══════════════════════════════════════════════════════════
-const TEST_MODE = false; // false = solo placa, autoplay al clicar
+const TEST_MODE = false; // false = solo placa, autoplay al click
 
 const CONFIG = {
-  texto:     'AYER UNA CHICA ME ABRAZÓ MUY FUERTE EN EL TREN ELLA PENSÓ QUE YO ERA OTRA PERSONA  OJALÁ SERLO CASI TODA LA GENTE QUE QUIERO ESTÁ LEJOS Y MUCHA GENTE QUE NO QUIERO ESTÁ CERCA OS PODÉIS CAMBIAR PORFA SIENTO QUE ME DILUYO ESTOY EN CASA DONDE TODOS SE SABEN MI NOMBRE PERO YO CASI NO RECUERDO LOS SUYOS CUANDO LA VIDA NOS DEJE VOLVER A VERNOS CUANDO DEJEMOS DE VIVIR AL DÍA CUANDO LA VIDA DEJE DE JODERNOS LA VIDA JURO DAROS YO ESOS ABRAZOS SIN ESPERAR A QUE LLEGUEN NO SÉ SI PODRÁ SER HOY PERO',
+  texto:     'RECUERDO PERSONA AYER UNA CHICA ME ABRAZÓ MUY FUERTE EN EL TREN ELLA PENSÓ QUE YO ERA OTRA PERSONA  OJALÁ SERLO CASI TODA LA GENTE QUE QUIERO ESTÁ LEJOS Y MUCHA GENTE QUE NO QUIERO ESTÁ CERCA OS PODÉIS CAMBIAR PORFA SIENTO QUE ME DILUYO ESTOY EN CASA DONDE TODOS SE SABEN MI NOMBRE PERO YO CASI NO RECUERDO LOS SUYOS CUANDO LA VIDA NOS DEJE VOLVER A VERNOS CUANDO DEJEMOS DE VIVIR AL DÍA CUANDO LA VIDA DEJE DE JODERNOS LA VIDA JURO DAROS YO ESOS ABRAZOS SIN ESPERAR A QUE LLEGUEN NO SÉ SI PODRÁ SER HOY PERO',
   modo:      'word',
   // Timing
   morph:     2,
@@ -264,7 +265,9 @@ function grain(ch,ev,delay,ch2){
 }
 
 // ── CANVAS Y GRID ────────────────────────────────────────────────────────────
-const _isMobile=window.innerWidth<=600;
+// Detección de móvil robusta — usa el menor de innerWidth y screen.width
+const _screenW=Math.min(window.innerWidth, window.screen?window.screen.width:window.innerWidth);
+const _isMobile=_screenW<=600;
 const _menuW=_isMobile?0:222;
 const DIAM=Math.min(
   _isMobile?window.innerWidth-16:window.innerWidth-_menuW-40,
